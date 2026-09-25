@@ -1,0 +1,57 @@
+services:
+  # Q-Deflate Web & Dashboard サーバー（Gleam / Mist / Wisp / htmx）
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: qdeflate_web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - socket_data:/var/run/sockets
+    environment:
+      - ENVIRONMENT=production
+      - AUTH_SOCKET_PATH=/var/run/sockets/auth.sock
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+    env_file:
+      - path: ./.env/stripe
+        required: false
+    depends_on:
+      - auth
+
+  # UDS要塞認証＆残高決済サーバー（Gleam / BEAM Actor / SO_PEERCRED）
+  auth:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: qdeflate_auth
+    restart: unless-stopped
+    volumes:
+      - socket_data:/var/run/sockets
+      - auth_data:/app/data
+    environment:
+      - ENVIRONMENT=production
+      - SOCKET_PATH=/var/run/sockets/auth.sock
+
+  # Cloudflare Tunnel（固定IP・ポート開放不要のHTTPS要塞直結）
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: qdeflate_tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+    env_file:
+      - path: ./.env/tunnel
+        required: false
+    depends_on:
+      - web
+    profiles:
+      - tunnel
+      - production
+
+volumes:
+  socket_data:
+  auth_data:

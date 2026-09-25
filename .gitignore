@@ -1,0 +1,28 @@
+# Gleam build outputs
+build/
+_build/
+erl_crash.dump
+*.beam
+
+# Environment secrets
+.env/
+*.env
+*.pem
+*.key
+
+# Data directories
+data/
+*.db
+*.sqlite
+
+# Python virtual environment & cache
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# System / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
