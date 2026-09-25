@@ -5,8 +5,12 @@
 
 [![Language: Gleam](https://img.shields.io/badge/Language-Gleam-ffaff3?logo=gleam&logoColor=black)](https://gleam.run)
 [![Runtime: BEAM / OTP](https://img.shields.io/badge/Runtime-BEAM%20%2F%20OTP-a90533?logo=erlang&logoColor=white)](https://www.erlang.org)
+[![Production: microforce.dev](https://img.shields.io/badge/Live%20Service-microforce.dev-10b981?logo=cloudflare&logoColor=white)](https://microforce.dev)
 [![Architecture: Zero-Storage](https://img.shields.io/badge/Security-Zero--Storage-emerald)](https://microforce.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**🌐 Official Website & Production Portal**: [https://microforce.dev](https://microforce.dev)  
+*Try the interactive Web Compress Studio or register for API tokens directly at [microforce.dev](https://microforce.dev).*
 
 ---
 
