@@ -86,7 +86,7 @@ pub fn render_login_page(error_msg: Option(String)) -> String {
         <input type=\"hidden\" name=\"action\" value=\"signin\">
         <div>
           <label class=\"block text-xs font-medium text-slate-300 mb-1.5\">User ID or API Token</label>
-          <input type=\"text\" name=\"identifier\" required placeholder=\"usr_cecilia or qdf_live_...\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
+          <input type=\"text\" name=\"identifier\" required placeholder=\"e.g. dev_genius or qdf_live_...\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
         </div>
 
         <button type=\"submit\" class=\"w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white text-xs font-semibold rounded-lg shadow-lg shadow-brand-500/25 transition-all\">
@@ -108,18 +108,7 @@ pub fn render_login_page(error_msg: Option(String)) -> String {
         </button>
       </form>
 
-      <!-- クイックデモログイン（ワンタッチ） -->
-      <div class=\"mt-6 pt-5 border-t border-slate-800 text-center\">
-        <span class=\"text-[11px] text-slate-500 block mb-2 font-mono\">Quick Developer Demo</span>
-        <form method=\"POST\" action=\"/login\">
-          <input type=\"hidden\" name=\"action\" value=\"signin\">
-          <input type=\"hidden\" name=\"identifier\" value=\"usr_cecilia\">
-          <button type=\"submit\" class=\"w-full py-2 px-3 bg-slate-800/80 hover:bg-slate-800 hover:text-white text-slate-300 text-xs font-mono font-medium rounded-lg border border-slate-700/60 transition-colors flex items-center justify-center space-x-2\">
-            <span>⚡</span>
-            <span>Instant Demo Login (usr_cecilia)</span>
-          </button>
-        </form>
-      </div>
+
     </div>
 
     <!-- フッター -->
