@@ -232,6 +232,7 @@ pub fn add_balance(
 pub fn create_user(
   socket_path: String,
   user_id: String,
+  password: String,
   api_key: String,
   initial_balance: Float,
 ) -> Result(AuthUser, String) {
@@ -241,6 +242,7 @@ pub fn create_user(
         json.object([
           #("action", json.string("create_user")),
           #("user_id", json.string(user_id)),
+          #("password", json.string(password)),
           #("api_key", json.string(api_key)),
           #("initial_balance", json.float(initial_balance)),
         ])
@@ -252,6 +254,40 @@ pub fn create_user(
         Ok(resp_bits) -> {
           case bit_array.to_string(resp_bits) {
             Ok(resp_str) -> parse_auth_response(resp_str)
+            Error(_) -> Error("Encoding error")
+          }
+        }
+        Error(err) -> Error("UDS recv error: " <> err)
+      }
+      close_uds(sock)
+      res
+    }
+    Error(err) -> Error("UDS connect error: " <> err)
+  }
+}
+
+/// UDS経由でIDとパスワードの照合を行う
+pub fn authenticate_user(
+  socket_path: String,
+  user_id: String,
+  password: String,
+) -> Result(AuthUserDetail, String) {
+  case connect_uds(socket_path) {
+    Ok(sock) -> {
+      let payload =
+        json.object([
+          #("action", json.string("authenticate")),
+          #("user_id", json.string(user_id)),
+          #("password", json.string(password)),
+        ])
+        |> json.to_string
+        <> "\n"
+
+      let _ = send_uds(sock, bit_array.from_string(payload))
+      let res = case recv_uds(sock, 3000) {
+        Ok(resp_bits) -> {
+          case bit_array.to_string(resp_bits) {
+            Ok(resp_str) -> parse_user_detail(resp_str)
             Error(_) -> Error("Encoding error")
           }
         }

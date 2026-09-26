@@ -86,7 +86,11 @@ pub fn render_login_page(error_msg: Option(String)) -> String {
         <input type=\"hidden\" name=\"action\" value=\"signin\">
         <div>
           <label class=\"block text-xs font-medium text-slate-300 mb-1.5\">User ID or API Token</label>
-          <input type=\"text\" name=\"identifier\" required placeholder=\"e.g. dev_genius or qdf_live_...\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
+          <input type=\"text\" name=\"identifier\" required placeholder=\"e.g. gen or qdf_live_...\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
+        </div>
+        <div>
+          <label class=\"block text-xs font-medium text-slate-300 mb-1.5\">Password <span class=\"text-slate-500 text-[10px]\">(optional if using API Token)</span></label>
+          <input type=\"password\" name=\"password\" placeholder=\"Enter your password\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
         </div>
 
         <button type=\"submit\" class=\"w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white text-xs font-semibold rounded-lg shadow-lg shadow-brand-500/25 transition-all\">
@@ -99,7 +103,11 @@ pub fn render_login_page(error_msg: Option(String)) -> String {
         <input type=\"hidden\" name=\"action\" value=\"signup\">
         <div>
           <label class=\"block text-xs font-medium text-slate-300 mb-1.5\">Desired User ID</label>
-          <input type=\"text\" name=\"new_user_id\" required placeholder=\"e.g. dev_genius\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
+          <input type=\"text\" name=\"new_user_id\" required placeholder=\"e.g. gen\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
+        </div>
+        <div>
+          <label class=\"block text-xs font-medium text-slate-300 mb-1.5\">Password</label>
+          <input type=\"password\" name=\"new_password\" required placeholder=\"Create a strong password\" class=\"w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors\">
           <p class=\"text-[11px] text-slate-500 mt-1.5 font-sans\">Includes 1,000 MB free compression bandwidth bonus.</p>
         </div>
 

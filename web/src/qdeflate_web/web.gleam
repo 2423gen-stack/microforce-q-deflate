@@ -645,13 +645,19 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                 Ok(id) -> string.trim(id)
                 Error(_) -> ""
               }
+              let password = case list.key_find(form.values, "password") {
+                Ok(p) -> string.trim(p)
+                Error(_) -> ""
+              }
 
-              case auth_client.get_user_by_id(socket_path, identifier) {
+              // 1. パスワード付き認証（User ID + Password）
+              case auth_client.authenticate_user(socket_path, identifier, password) {
                 Ok(u) -> {
                   wisp.redirect(to: "/dashboard")
                   |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.PlainText, 86400)
                 }
                 Error(_) -> {
+                  // 2. APIキー直接ログイン（qdf_live_...）
                   case auth_client.verify_api_key(socket_path, identifier) {
                     Ok(u) -> {
                       wisp.redirect(to: "/dashboard")
@@ -661,7 +667,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                       wisp.ok()
                       |> wisp.html_body(
                         login.render_login_page(option.Some(
-                          "User ID or API Token not found. Please verify your credentials.",
+                          "ユーザーIDまたはパスワードが正しくありません。（Invalid credentials）",
                         )),
                       )
                     }
@@ -674,25 +680,39 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                 Ok(id) -> string.trim(id)
                 Error(_) -> ""
               }
+              let new_password = case list.key_find(form.values, "new_password") {
+                Ok(p) -> string.trim(p)
+                Error(_) -> ""
+              }
 
-              case new_user_id {
-                "" -> {
+              case new_user_id, new_password {
+                "", _ -> {
                   wisp.ok()
                   |> wisp.html_body(
-                    login.render_login_page(option.Some("User ID cannot be empty.")),
+                    login.render_login_page(option.Some("ユーザーIDを入力してください。")),
                   )
                 }
-                uid -> {
+                _, "" -> {
+                  wisp.ok()
+                  |> wisp.html_body(
+                    login.render_login_page(option.Some("パスワードを設定してください。")),
+                  )
+                }
+                uid, pw -> {
                   let new_key = "qdf_live_" <> generate_random_key()
-                  case auth_client.create_user(socket_path, uid, new_key, 1000.0) {
+                  case auth_client.create_user(socket_path, uid, pw, new_key, 1000.0) {
                     Ok(u) -> {
                       wisp.redirect(to: "/dashboard")
                       |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.PlainText, 86400)
                     }
                     Error(err) -> {
+                      let display_err = case string.contains(err, "user_already_exists") {
+                        True -> "指定されたユーザーID（" <> uid <> "）は既に使用されています。別のIDをお試しください。"
+                        False -> "アカウント作成に失敗しました: " <> err
+                      }
                       wisp.ok()
                       |> wisp.html_body(
-                        login.render_login_page(option.Some("Account creation failed: " <> err)),
+                        login.render_login_page(option.Some(display_err)),
                       )
                     }
                   }
