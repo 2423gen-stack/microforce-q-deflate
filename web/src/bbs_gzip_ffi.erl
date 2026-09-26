@@ -1,5 +1,5 @@
 -module(bbs_gzip_ffi).
--export([gzip_compress/1, generate_random_key/0, create_stripe_checkout/7, get_env/1]).
+-export([gzip_compress/1, generate_random_key/0, create_stripe_checkout/7, create_stripe_checkout/8, get_env/1]).
 
 gzip_compress(Binary) ->
     try
@@ -24,6 +24,9 @@ get_env(KeyBin) ->
 
 
 create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountJpy, CreditsMb) ->
+    create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountJpy, CreditsMb, 0).
+
+create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountJpy, CreditsMb, TipJpy) ->
     ssl:start(),
     inets:start(),
     Url = "https://api.stripe.com/v1/checkout/sessions",
@@ -35,7 +38,7 @@ create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, Pla
     AmountStr = integer_to_list(AmountJpy),
     CreditsMbStr = float_to_list(CreditsMb, [{decimals, 1}, compact]),
     
-    FormData = [
+    BaseFormData = [
         {"payment_method_types[]", "card"},
         {"mode", "payment"},
         {"success_url", binary_to_list(SuccessUrlBin)},
@@ -47,6 +50,20 @@ create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, Pla
         {"metadata[user_id]", binary_to_list(UserIdBin)},
         {"metadata[credits_mb]", CreditsMbStr}
     ],
+    
+    FormData = case TipJpy of
+        T when is_integer(T), T > 0 ->
+            TipStr = integer_to_list(T),
+            BaseFormData ++ [
+                {"line_items[1][price_data][currency]", "jpy"},
+                {"line_items[1][price_data][unit_amount]", TipStr},
+                {"line_items[1][price_data][product_data][name]", "Developer Tip (US Restaurant Style 🇺🇸)"},
+                {"line_items[1][quantity]", "1"},
+                {"metadata[tip_jpy]", TipStr}
+            ];
+        _ ->
+            BaseFormData
+    end,
     
     EncodePair = fun({K, V}) ->
         uri_string:quote(K) ++ "=" ++ uri_string:quote(V)

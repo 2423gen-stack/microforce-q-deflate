@@ -240,9 +240,17 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
               let socket_path = "/var/run/sockets/auth.sock"
               case auth_client.verify_api_key(socket_path, token) {
                 Ok(user) -> {
-                  let plan = case wisp.get_query(req) {
-                    [#("plan", p), ..] -> p
-                    _ -> "starter"
+                  let query = wisp.get_query(req)
+                  let plan = case list.key_find(query, "plan") {
+                    Ok(p) -> p
+                    Error(_) -> "starter"
+                  }
+                  let tip_jpy = case list.key_find(query, "tip") {
+                    Ok(t_str) -> case int.parse(t_str) {
+                      Ok(t) if t > 0 -> t
+                      _ -> 0
+                    }
+                    Error(_) -> 0
                   }
                   let #(plan_name, amount_jpy, credits_mb) = case plan {
                     "standard" -> #(
@@ -271,7 +279,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   let cancel_url = base_url <> "/dashboard?tab=billing"
 
                   case
-                    stripe.create_checkout_session(
+                    stripe.create_checkout_session_with_tip(
                       secret_key,
                       success_url,
                       cancel_url,
@@ -279,6 +287,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                       plan_name,
                       amount_jpy,
                       credits_mb,
+                      tip_jpy,
                     )
                   {
                     Ok(session) -> {
@@ -289,6 +298,8 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                           #("session_id", json.string(session.id)),
                           #("plan", json.string(plan)),
                           #("amount_jpy", json.int(amount_jpy)),
+                          #("tip_jpy", json.int(tip_jpy)),
+                          #("total_jpy", json.int(amount_jpy + tip_jpy)),
                           #("credits_mb", json.float(credits_mb)),
                         ])
                       wisp.json_response(json.to_string(res), 200)
@@ -478,10 +489,19 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
         Get -> {
           case resolve_dashboard_user(req) {
             Ok(user) -> {
-              let plan = case wisp.get_query(req) {
-                [#("plan", p), ..] -> p
-                _ -> "starter"
+              let query = wisp.get_query(req)
+              let plan = case list.key_find(query, "plan") {
+                Ok(p) -> p
+                Error(_) -> "starter"
               }
+              let tip_jpy = case list.key_find(query, "tip") {
+                Ok(t_str) -> case int.parse(t_str) {
+                  Ok(t) if t > 0 -> t
+                  _ -> 0
+                }
+                Error(_) -> 0
+              }
+
               let #(plan_name, amount_jpy, credits_mb) = case plan {
                 "standard" -> #(
                   "Q-Deflate Standard Volume (+550,000 MB)",
@@ -495,33 +515,34 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                 )
               }
 
-          let secret_key = stripe.get_stripe_secret_key()
-          let host = case list.key_find(req.headers, "host") {
-            Ok(h) -> h
-            Error(_) -> "localhost:8088"
-          }
-          let proto = case list.key_find(req.headers, "x-forwarded-proto") {
-            Ok(p) -> p
-            Error(_) -> "http"
-          }
-          let base_url = proto <> "://" <> host
-          let success_url = base_url <> "/dashboard?tab=billing"
-          let cancel_url = base_url <> "/dashboard?tab=billing"
+              let secret_key = stripe.get_stripe_secret_key()
+              let host = case list.key_find(req.headers, "host") {
+                Ok(h) -> h
+                Error(_) -> "localhost:8088"
+              }
+              let proto = case list.key_find(req.headers, "x-forwarded-proto") {
+                Ok(p) -> p
+                Error(_) -> "http"
+              }
+              let base_url = proto <> "://" <> host
+              let success_url = base_url <> "/dashboard?tab=billing"
+              let cancel_url = base_url <> "/dashboard?tab=billing"
 
-          case
-            stripe.create_checkout_session(
-              secret_key,
-              success_url,
-              cancel_url,
-              user.user_id,
-              plan_name,
-              amount_jpy,
-              credits_mb,
-            )
-          {
-            Ok(session) -> {
-              wisp.redirect(session.url)
-            }
+              case
+                stripe.create_checkout_session_with_tip(
+                  secret_key,
+                  success_url,
+                  cancel_url,
+                  user.user_id,
+                  plan_name,
+                  amount_jpy,
+                  credits_mb,
+                  tip_jpy,
+                )
+              {
+                Ok(session) -> {
+                  wisp.redirect(session.url)
+                }
             Error(err) -> {
               let res =
                 json.object([

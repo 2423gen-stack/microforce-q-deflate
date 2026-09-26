@@ -796,6 +796,75 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
       </div>
     </div>
 
+    <!-- US Restaurant Style Gratuity (チップ選択セレクター) -->
+    <div class=\"bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 rounded-xl border border-amber-200/80 p-6 shadow-xs\">
+      <div class=\"flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-amber-100\">
+        <div>
+          <div class=\"flex items-center space-x-2\">
+            <span class=\"text-lg\">🍕</span>
+            <h2 class=\"text-sm font-bold text-slate-900\">Add Gratuity (US Restaurant Style 🇺🇸)</h2>
+            <span class=\"px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider\">Optional</span>
+          </div>
+          <p class=\"text-xs text-slate-500 mt-1\">
+            Honor American tradition or stick to Tokyo minimalism. Zero tip is 100% fine!
+          </p>
+        </div>
+        <div class=\"text-right\">
+          <span class=\"text-xs font-mono text-slate-500\">Active Tip:</span>
+          <span id=\"display-active-tip\" class=\"text-sm font-bold font-mono text-amber-700 ml-1\">+¥0</span>
+        </div>
+      </div>
+
+      <!-- チッププリセットボタングループ -->
+      <div class=\"grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4\">
+        <button type=\"button\" onclick=\"selectTip(0, this)\"
+                class=\"tip-option-btn active-tip border-2 border-slate-900 bg-white p-3 rounded-lg text-left transition-all shadow-xs\">
+          <div class=\"text-xs font-bold text-slate-900\">0% (No Tip)</div>
+          <div class=\"text-[11px] text-slate-500 mt-0.5 font-mono\">¥0</div>
+          <div class=\"text-[10px] text-slate-400 mt-1 italic\">\"Tokyo Style\"</div>
+        </button>
+
+        <button type=\"button\" onclick=\"selectTip(180, this)\"
+                class=\"tip-option-btn border border-slate-200 hover:border-amber-400 bg-white p-3 rounded-lg text-left transition-all shadow-xs\">
+          <div class=\"text-xs font-bold text-slate-900\">18% (Fair)</div>
+          <div class=\"text-[11px] text-amber-600 font-bold font-mono mt-0.5\">+¥180</div>
+          <div class=\"text-[10px] text-slate-500 mt-1\">Keep servers warm</div>
+        </button>
+
+        <button type=\"button\" onclick=\"selectTip(250, this)\"
+                class=\"tip-option-btn border border-slate-200 hover:border-amber-400 bg-white p-3 rounded-lg text-left transition-all shadow-xs\">
+          <div class=\"text-xs font-bold text-slate-900\">25% (Generous)</div>
+          <div class=\"text-[11px] text-amber-600 font-bold font-mono mt-0.5\">+¥250</div>
+          <div class=\"text-[10px] text-slate-500 mt-1\">AEON Beer 🍺</div>
+        </button>
+
+        <button type=\"button\" onclick=\"selectTip(15000, this)\"
+                class=\"tip-option-btn border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:border-orange-400 p-3 rounded-lg text-left transition-all shadow-xs relative overflow-hidden\">
+          <span class=\"absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-bl\">Recommended!</span>
+          <div class=\"text-xs font-bold text-orange-950\">US Dining (~$100)</div>
+          <div class=\"text-[11px] text-orange-700 font-bold font-mono mt-0.5\">+¥15,000</div>
+          <div class=\"text-[10px] text-orange-800 font-semibold mt-1\">Full Experience 🇺🇸</div>
+        </button>
+      </div>
+
+      <!-- カスタム金額入力スライダー/インプット -->
+      <div class=\"mt-4 pt-3 border-t border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs\">
+        <div class=\"text-slate-500 flex items-center space-x-1.5\">
+          <span>💡</span>
+          <span>Tip is billed as an itemized line item on your official Stripe tax receipt.</span>
+        </div>
+        <div class=\"flex items-center space-x-2\">
+          <label for=\"custom-tip-input\" class=\"text-slate-600 font-medium\">Custom Tip:</label>
+          <div class=\"relative rounded-md shadow-xs\">
+            <span class=\"absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-mono\">¥</span>
+            <input type=\"number\" id=\"custom-tip-input\" min=\"0\" max=\"100000\" placeholder=\"0\" step=\"100\"
+                   oninput=\"onCustomTipInput(this.value)\"
+                   class=\"w-28 pl-6 pr-2 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 focus:border-amber-500 font-mono text-right text-slate-800\">
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- チャージプランカード -->
     <div class=\"grid grid-cols-1 md:grid-cols-3 gap-6\">
       <!-- 1,000円 チャージ -->
@@ -810,7 +879,7 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Standard speed</span></li>
           </ul>
         </div>
-        <a href=\"/dashboard/api/checkout?plan=starter\"
+        <a id=\"btn-checkout-starter\" href=\"/dashboard/api/checkout?plan=starter&tip=0\"
            class=\"mt-6 w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors block text-center\">
           Charge ¥1,000 via Stripe
         </a>
@@ -831,7 +900,7 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>No expiration</span></li>
           </ul>
         </div>
-        <a href=\"/dashboard/api/checkout?plan=standard\"
+        <a id=\"btn-checkout-standard\" href=\"/dashboard/api/checkout?plan=standard&tip=0\"
            class=\"mt-6 w-full py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors block text-center\">
           Charge ¥5,000 via Stripe
         </a>
@@ -849,12 +918,53 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
             <li class=\"flex items-center space-x-2\"><span class=\"text-purple-500 font-bold\">✓</span> <span>Direct Slack/Discord support</span></li>
           </ul>
         </div>
-        <a href=\"/dashboard/api/checkout?plan=standard\"
+        <a href=\"/dashboard/api/checkout?plan=standard&tip=0\"
            class=\"mt-6 w-full py-2 border border-purple-300 text-purple-700 hover:bg-purple-50 rounded-lg text-xs font-semibold transition-colors block text-center\">
           Subscribe via Stripe
         </a>
       </div>
     </div>
+
+    <!-- Tip 選択連動 JavaScript -->
+    <script>
+      let currentTip = 0;
+      function selectTip(amount, btnElement) {
+        currentTip = amount;
+        document.getElementById('custom-tip-input').value = '';
+        updateTipUi(amount, btnElement);
+      }
+      function onCustomTipInput(val) {
+        const parsed = parseInt(val, 10);
+        currentTip = (!isNaN(parsed) && parsed > 0) ? parsed : 0;
+        updateTipUi(currentTip, null);
+      }
+      function updateTipUi(amount, activeBtn) {
+        const display = document.getElementById('display-active-tip');
+        if (display) {
+          display.innerText = (amount > 0 ? '+¥' + amount.toLocaleString() : '+¥0');
+        }
+        document.querySelectorAll('.tip-option-btn').forEach(b => {
+          b.classList.remove('border-slate-900', 'border-2');
+          b.classList.add('border-slate-200');
+        });
+        if (activeBtn) {
+          activeBtn.classList.remove('border-slate-200');
+          activeBtn.classList.add('border-slate-900', 'border-2');
+        }
+        const btnStarter = document.getElementById('btn-checkout-starter');
+        if (btnStarter) {
+          btnStarter.href = '/dashboard/api/checkout?plan=starter&tip=' + amount;
+          const total = 1000 + amount;
+          btnStarter.innerText = (amount > 0 ? 'Charge ¥' + total.toLocaleString() + ' (incl. tip) via Stripe' : 'Charge ¥1,000 via Stripe');
+        }
+        const btnStandard = document.getElementById('btn-checkout-standard');
+        if (btnStandard) {
+          btnStandard.href = '/dashboard/api/checkout?plan=standard&tip=' + amount;
+          const total = 5000 + amount;
+          btnStandard.innerText = (amount > 0 ? 'Charge ¥' + total.toLocaleString() + ' (incl. tip) via Stripe' : 'Charge ¥5,000 via Stripe');
+        }
+      }
+    </script>
   </div>
   "
 }

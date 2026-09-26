@@ -8,7 +8,7 @@ import gleam/dynamic/decode
 import gleam/json
 
 @external(erlang, "bbs_gzip_ffi", "create_stripe_checkout")
-fn ffi_create_stripe_checkout(
+fn ffi_create_stripe_checkout_with_tip(
   secret_key: String,
   success_url: String,
   cancel_url: String,
@@ -16,6 +16,7 @@ fn ffi_create_stripe_checkout(
   plan_name: String,
   amount_jpy: Int,
   credits_mb: Float,
+  tip_jpy: Int,
 ) -> Result(BitArray, String)
 
 @external(erlang, "bbs_gzip_ffi", "get_env")
@@ -38,8 +39,8 @@ pub fn get_stripe_secret_key() -> String {
   }
 }
 
-/// Stripe Checkout Session を作成して決済用URLを取得する
-pub fn create_checkout_session(
+/// Stripe Checkout Session を作成して決済用URLを取得する（チップ額指定可能）
+pub fn create_checkout_session_with_tip(
   secret_key: String,
   success_url: String,
   cancel_url: String,
@@ -47,9 +48,14 @@ pub fn create_checkout_session(
   plan_name: String,
   amount_jpy: Int,
   credits_mb: Float,
+  tip_jpy: Int,
 ) -> Result(CheckoutSession, String) {
+  let safe_tip = case tip_jpy < 0 {
+    True -> 0
+    False -> tip_jpy
+  }
   case
-    ffi_create_stripe_checkout(
+    ffi_create_stripe_checkout_with_tip(
       secret_key,
       success_url,
       cancel_url,
@@ -57,6 +63,7 @@ pub fn create_checkout_session(
       plan_name,
       amount_jpy,
       credits_mb,
+      safe_tip,
     )
   {
     Ok(raw_bits) -> {
@@ -67,6 +74,28 @@ pub fn create_checkout_session(
     }
     Error(err) -> Error("Stripe API call error: " <> err)
   }
+}
+
+/// Stripe Checkout Session を作成して決済用URLを取得する（通常版: チップ0円）
+pub fn create_checkout_session(
+  secret_key: String,
+  success_url: String,
+  cancel_url: String,
+  user_id: String,
+  plan_name: String,
+  amount_jpy: Int,
+  credits_mb: Float,
+) -> Result(CheckoutSession, String) {
+  create_checkout_session_with_tip(
+    secret_key,
+    success_url,
+    cancel_url,
+    user_id,
+    plan_name,
+    amount_jpy,
+    credits_mb,
+    0,
+  )
 }
 
 fn parse_checkout_response(json_str: String) -> Result(CheckoutSession, String) {
