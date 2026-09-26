@@ -16,6 +16,7 @@ pub fn kvs_crud_test() {
   // 1. ユーザー作成（自己申告型）
   let user = kvs.User(
     user_id: "usr_cecilia",
+    password_hash: "",
     api_key: "qdf_live_sec123",
     balance: 500.0,
     quota_bytes: 104857600,
@@ -54,6 +55,7 @@ pub fn kvs_server_integration_test() {
   let _ = kvs.call_create_user(
     kvs_actor,
     "usr_test",
+    "",
     "qdf_live_valid_key",
     100.0,
   )
@@ -79,10 +81,20 @@ pub fn kvs_server_integration_test() {
           Error(err) -> protocol.AuthError(error_code: err, message: "Deduction failed")
         }
       }
-      protocol.CreateUser(user_id, api_key, initial_balance) -> {
-        case kvs.call_create_user(kvs_actor, user_id, api_key, initial_balance) {
+      protocol.CreateUser(user_id, password, api_key, initial_balance) -> {
+        let pw_hash = case password {
+          "" -> ""
+          p -> uds.hash_password(p)
+        }
+        case kvs.call_create_user(kvs_actor, user_id, pw_hash, api_key, initial_balance) {
           Ok(u) -> protocol.AuthOk(user_id: u.user_id, balance: u.balance, quota_bytes: u.quota_bytes)
           Error(err) -> protocol.AuthError(error_code: err, message: "Create user failed")
+        }
+      }
+      protocol.Authenticate(user_id, password) -> {
+        case kvs.call_authenticate(kvs_actor, user_id, password) {
+          Ok(u) -> protocol.UserDetail(u.user_id, u.api_key, u.balance, u.quota_bytes)
+          Error(err) -> protocol.AuthError(error_code: err, message: "Authentication failed")
         }
       }
       protocol.ProcessPayment(_, _, _) ->
@@ -103,6 +115,13 @@ pub fn kvs_server_integration_test() {
         case kvs.call_add_balance_by_user_id(kvs_actor, user_id, amount) {
           Ok(u) -> protocol.UserDetail(u.user_id, u.api_key, u.balance, u.quota_bytes)
           Error(err) -> protocol.AuthError(error_code: err, message: "Add balance failed")
+        }
+      }
+      protocol.UpdatePassword(user_id, new_password) -> {
+        let new_hash = uds.hash_password(new_password)
+        case kvs.call_update_password(kvs_actor, user_id, new_hash) {
+          Ok(u) -> protocol.UserDetail(u.user_id, u.api_key, u.balance, u.quota_bytes)
+          Error(err) -> protocol.AuthError(error_code: err, message: "Password update failed")
         }
       }
     }

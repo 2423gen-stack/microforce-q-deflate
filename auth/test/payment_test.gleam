@@ -15,6 +15,7 @@ pub fn idempotency_and_topup_test() {
   let _ = kvs.call_create_user(
     kvs_actor,
     "usr_customer",
+    "",
     "qdf_live_customer_key",
     10.0,
   )

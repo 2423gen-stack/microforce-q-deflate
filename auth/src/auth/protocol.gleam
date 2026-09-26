@@ -10,7 +10,9 @@ import gleam/json
 pub type AuthRequest {
   VerifyKey(api_key: String)
   DeductBalance(api_key: String, amount: Float)
-  CreateUser(user_id: String, api_key: String, initial_balance: Float)
+  CreateUser(user_id: String, password: String, api_key: String, initial_balance: Float)
+  Authenticate(user_id: String, password: String)
+  UpdatePassword(user_id: String, new_password: String)
   GetUser(api_key: String)
   GetUserById(user_id: String)
   RegenerateKey(user_id: String, new_key: String)
@@ -77,6 +79,17 @@ pub fn decode_request(json_string: String) -> Result(AuthRequest, String) {
         Error(_) -> Error("Invalid regenerate_key params")
       }
     }
+    Ok("update_password") -> {
+      let decoder = {
+        use user_id <- decode.field("user_id", decode.string)
+        use new_password <- decode.field("new_password", decode.string)
+        decode.success(UpdatePassword(user_id: user_id, new_password: new_password))
+      }
+      case json.parse(json_string, decoder) {
+        Ok(req) -> Ok(req)
+        Error(_) -> Error("Invalid update_password params")
+      }
+    }
     Ok("add_balance") -> {
       let decoder = {
         use user_id <- decode.field("user_id", decode.string)
@@ -102,13 +115,29 @@ pub fn decode_request(json_string: String) -> Result(AuthRequest, String) {
     Ok("create_user") -> {
       let decoder = {
         use user_id <- decode.field("user_id", decode.string)
+        use password <- decode.optional_field(
+          "password",
+          "",
+          decode.string,
+        )
         use api_key <- decode.field("api_key", decode.string)
         use balance <- decode.field("initial_balance", decode.float)
-        decode.success(CreateUser(user_id:, api_key:, initial_balance: balance))
+        decode.success(CreateUser(user_id:, password:, api_key:, initial_balance: balance))
       }
       case json.parse(json_string, decoder) {
         Ok(req) -> Ok(req)
         Error(_) -> Error("Invalid create_user params")
+      }
+    }
+    Ok("authenticate") -> {
+      let decoder = {
+        use user_id <- decode.field("user_id", decode.string)
+        use password <- decode.field("password", decode.string)
+        decode.success(Authenticate(user_id:, password:))
+      }
+      case json.parse(json_string, decoder) {
+        Ok(req) -> Ok(req)
+        Error(_) -> Error("Invalid authenticate params")
       }
     }
     Ok("process_payment") -> {

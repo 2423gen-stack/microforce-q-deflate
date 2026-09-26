@@ -16,6 +16,7 @@ pub fn new_database() -> Database {
 pub fn default_admin_user() -> User {
   kvs.User(
     user_id: "usr_admin",
+    password_hash: "",
     api_key: "qdf_live_admin_key",
     balance: 100.0,
     quota_bytes: 104857600,

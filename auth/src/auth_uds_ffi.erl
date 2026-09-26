@@ -1,5 +1,5 @@
 -module(auth_uds_ffi).
--export([listen_uds/1, accept_uds/1, connect_uds/1, send_uds/2, recv_uds/2, close_uds/1, delete_file/1, spawn_proc/1, sleep/1, get_env/2]).
+-export([listen_uds/1, accept_uds/1, connect_uds/1, send_uds/2, recv_uds/2, close_uds/1, delete_file/1, spawn_proc/1, sleep/1, get_env/2, hash_password/1, verify_password/2]).
 
 listen_uds(PathBin) ->
     Path = binary_to_list(PathBin),
@@ -65,4 +65,24 @@ get_env(NameBin, DefaultBin) ->
     case os:getenv(binary_to_list(NameBin)) of
         false -> DefaultBin;
         Val -> list_to_binary(Val)
+    end.
+
+hash_password(PasswordBin) ->
+    Salt = crypto:strong_rand_bytes(16),
+    SaltHex = binary:encode_hex(Salt),
+    Salted = <<Salt/binary, PasswordBin/binary>>,
+    Hash = binary:encode_hex(crypto:hash(sha256, Salted)),
+    <<SaltHex/binary, "$", Hash/binary>>.
+
+verify_password(PasswordBin, StoredBin) ->
+    case binary:split(StoredBin, <<"$">>) of
+        [SaltHex, ExpectedHash] ->
+            case catch binary:decode_hex(SaltHex) of
+                Salt when is_binary(Salt) ->
+                    Salted = <<Salt/binary, PasswordBin/binary>>,
+                    ComputedHash = binary:encode_hex(crypto:hash(sha256, Salted)),
+                    ComputedHash =:= ExpectedHash;
+                _ -> false
+            end;
+        _ -> false
     end.

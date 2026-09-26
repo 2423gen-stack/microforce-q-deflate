@@ -724,14 +724,14 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
               case auth_client.authenticate_user(socket_path, identifier, password) {
                 Ok(u) -> {
                   wisp.redirect(to: "/dashboard")
-                  |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.PlainText, 86400)
+                  |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.Signed, 86400)
                 }
                 Error(_) -> {
                   // 2. APIキー直接ログイン（qdf_live_...）
                   case auth_client.verify_api_key(socket_path, identifier) {
                     Ok(u) -> {
                       wisp.redirect(to: "/dashboard")
-                      |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.PlainText, 86400)
+                      |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.Signed, 86400)
                     }
                     Error(_) -> {
                       wisp.ok()
@@ -773,7 +773,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   case auth_client.create_user(socket_path, uid, pw, new_key, 1000.0) {
                     Ok(u) -> {
                       wisp.redirect(to: "/dashboard")
-                      |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.PlainText, 86400)
+                      |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.Signed, 86400)
                     }
                     Error(err) -> {
                       let display_err = case string.contains(err, "user_already_exists") {
@@ -799,7 +799,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
     // 14-c. サインアウト: GET /logout, POST /logout
     ["logout"] -> {
       wisp.redirect(to: "/login")
-      |> wisp.set_cookie(req, "qdf_session", "", wisp.PlainText, 0)
+      |> wisp.set_cookie(req, "qdf_session", "", wisp.Signed, 0)
     }
 
     // 15. Dashboard ダウンロード: GET /dashboard/download/:id
@@ -834,7 +834,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
 
 fn resolve_dashboard_user(req: Request) -> Result(auth_client.AuthUserDetail, Nil) {
   let socket_path = "/var/run/sockets/auth.sock"
-  case wisp.get_cookie(req, "qdf_session", wisp.PlainText) {
+  case wisp.get_cookie(req, "qdf_session", wisp.Signed) {
     Ok(uid) if uid != "" -> {
       case auth_client.get_user_by_id(socket_path, uid) {
         Ok(u) -> Ok(u)

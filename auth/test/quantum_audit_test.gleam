@@ -24,6 +24,7 @@ pub fn concurrent_race_condition_audit_test() {
   let _ = kvs.call_create_user(
     kvs_actor,
     "usr_target",
+    "",
     "qdf_live_race_key",
     10.0,
   )

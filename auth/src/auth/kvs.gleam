@@ -5,6 +5,7 @@
 //// スキーマレス・マイグレーション不要で、任意のメタデータ属性を受容する。
 //// 読み取り直引き O(1) ＆ アクター内蔵キューによる直列アトミック更新
 
+import auth/uds
 import gleam/dict.{type Dict}
 import gleam/erlang/process.{type Subject}
 import gleam/otp/actor
@@ -12,6 +13,7 @@ import gleam/otp/actor
 pub type User {
   User(
     user_id: String,
+    password_hash: String,
     api_key: String,
     balance: Float,
     quota_bytes: Int,
@@ -128,6 +130,22 @@ pub fn add_balance_by_user_id(
   }
 }
 
+pub fn update_password(
+  db: Database,
+  user_id: String,
+  new_password_hash: String,
+) -> Result(#(User, Database), String) {
+  case get_by_user_id(db, user_id) {
+    Ok(user) -> {
+      let updated = User(..user, password_hash: new_password_hash)
+      let by_api_key = dict.insert(db.by_api_key, user.api_key, updated)
+      let by_user_id = dict.insert(db.by_user_id, user_id, updated)
+      Ok(#(updated, Database(by_api_key:, by_user_id:)))
+    }
+    Error(err) -> Error(err)
+  }
+}
+
 // -------------------------------------------------------------
 // OTP Actor による並行アトミック管理（電話交換機DNA）
 // -------------------------------------------------------------
@@ -139,7 +157,9 @@ pub type KvsMessage {
   Add(api_key: String, amount: Float, reply_to: Subject(Result(User, String)))
   AddByUserId(user_id: String, amount: Float, reply_to: Subject(Result(User, String)))
   Regenerate(user_id: String, new_key: String, reply_to: Subject(Result(User, String)))
-  Create(user_id: String, api_key: String, initial_balance: Float, reply_to: Subject(Result(User, String)))
+  Create(user_id: String, password_hash: String, api_key: String, initial_balance: Float, reply_to: Subject(Result(User, String)))
+  Authenticate(user_id: String, password_hash: String, reply_to: Subject(Result(User, String)))
+  UpdatePasswordMsg(user_id: String, new_password_hash: String, reply_to: Subject(Result(User, String)))
 }
 
 pub fn start_actor() -> Result(Subject(KvsMessage), actor.StartError) {
@@ -202,17 +222,52 @@ pub fn start_actor() -> Result(Subject(KvsMessage), actor.StartError) {
           }
         }
       }
-      Create(user_id, api_key, balance, reply_to) -> {
-        let user = User(
-          user_id:,
-          api_key:,
-          balance:,
-          quota_bytes: 104857600,
-          metadata: dict.new(),
-        )
-        case insert_user(db, user) {
-          Ok(new_db) -> {
-            process.send(reply_to, Ok(user))
+      Create(user_id, password_hash, api_key, balance, reply_to) -> {
+        // 重複チェック: 既にユーザーIDが存在する場合は弾く
+        case get_by_user_id(db, user_id) {
+          Ok(_) -> {
+            process.send(reply_to, Error("user_already_exists"))
+            actor.continue(db)
+          }
+          Error(_) -> {
+            let user = User(
+              user_id:,
+              password_hash:,
+              api_key:,
+              balance:,
+              quota_bytes: 104857600,
+              metadata: dict.new(),
+            )
+            case insert_user(db, user) {
+              Ok(new_db) -> {
+                process.send(reply_to, Ok(user))
+                actor.continue(new_db)
+              }
+              Error(err) -> {
+                process.send(reply_to, Error(err))
+                actor.continue(db)
+              }
+            }
+          }
+        }
+      }
+      Authenticate(user_id, password, reply_to) -> {
+        case get_by_user_id(db, user_id) {
+          Ok(user) -> {
+            // uds.verify_password でソルト付きハッシュ照合（空ハッシュは無条件不合格とする）
+            case user.password_hash != "" && uds.verify_password(password, user.password_hash) {
+              True -> process.send(reply_to, Ok(user))
+              False -> process.send(reply_to, Error("invalid_password"))
+            }
+          }
+          Error(_) -> process.send(reply_to, Error("user_not_found"))
+        }
+        actor.continue(db)
+      }
+      UpdatePasswordMsg(user_id, new_password_hash, reply_to) -> {
+        case update_password(db, user_id, new_password_hash) {
+          Ok(#(updated_user, new_db)) -> {
+            process.send(reply_to, Ok(updated_user))
             actor.continue(new_db)
           }
           Error(err) -> {
@@ -256,11 +311,25 @@ pub fn call_add_balance(server: Subject(KvsMessage), key: String, amount: Float)
 pub fn call_create_user(
   server: Subject(KvsMessage),
   user_id: String,
+  password_hash: String,
   api_key: String,
   initial_balance: Float,
 ) -> Result(User, String) {
   case process.call(server, 1000, fn(reply_to) {
-    Create(user_id, api_key, initial_balance, reply_to)
+    Create(user_id, password_hash, api_key, initial_balance, reply_to)
+  }) {
+    Ok(u) -> Ok(u)
+    Error(err) -> Error(err)
+  }
+}
+
+pub fn call_authenticate(
+  server: Subject(KvsMessage),
+  user_id: String,
+  password: String,
+) -> Result(User, String) {
+  case process.call(server, 1000, fn(reply_to) {
+    Authenticate(user_id, password, reply_to)
   }) {
     Ok(u) -> Ok(u)
     Error(err) -> Error(err)
@@ -283,6 +352,19 @@ pub fn call_regenerate_key(server: Subject(KvsMessage), user_id: String, new_key
 
 pub fn call_add_balance_by_user_id(server: Subject(KvsMessage), user_id: String, amount: Float) -> Result(User, String) {
   case process.call(server, 1000, fn(reply_to) { AddByUserId(user_id, amount, reply_to) }) {
+    Ok(u) -> Ok(u)
+    Error(err) -> Error(err)
+  }
+}
+
+pub fn call_update_password(
+  server: Subject(KvsMessage),
+  user_id: String,
+  new_password_hash: String,
+) -> Result(User, String) {
+  case process.call(server, 1000, fn(reply_to) {
+    UpdatePasswordMsg(user_id, new_password_hash, reply_to)
+  }) {
     Ok(u) -> Ok(u)
     Error(err) -> Error(err)
   }

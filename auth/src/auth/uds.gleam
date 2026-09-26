@@ -40,3 +40,9 @@ pub fn sleep(ms: Int) -> Nil
 
 @external(erlang, "auth_uds_ffi", "get_env")
 pub fn get_env(name: String, default: String) -> String
+
+@external(erlang, "auth_uds_ffi", "hash_password")
+pub fn hash_password(password: String) -> String
+
+@external(erlang, "auth_uds_ffi", "verify_password")
+pub fn verify_password(password: String, stored_hash: String) -> Bool
