@@ -300,6 +300,40 @@ pub fn authenticate_user(
   }
 }
 
+/// UDS経由でパスワードを更新する
+pub fn update_password(
+  socket_path: String,
+  user_id: String,
+  new_password: String,
+) -> Result(AuthUserDetail, String) {
+  case connect_uds(socket_path) {
+    Ok(sock) -> {
+      let payload =
+        json.object([
+          #("action", json.string("update_password")),
+          #("user_id", json.string(user_id)),
+          #("new_password", json.string(new_password)),
+        ])
+        |> json.to_string
+        <> "\n"
+
+      let _ = send_uds(sock, bit_array.from_string(payload))
+      let res = case recv_uds(sock, 3000) {
+        Ok(resp_bits) -> {
+          case bit_array.to_string(resp_bits) {
+            Ok(resp_str) -> parse_user_detail(resp_str)
+            Error(_) -> Error("Encoding error")
+          }
+        }
+        Error(err) -> Error("UDS recv error: " <> err)
+      }
+      close_uds(sock)
+      res
+    }
+    Error(err) -> Error("UDS connect error: " <> err)
+  }
+}
+
 fn parse_user_detail(json_string: String) -> Result(AuthUserDetail, String) {
   let status_decoder = {
     use status <- decode.field("status", decode.string)

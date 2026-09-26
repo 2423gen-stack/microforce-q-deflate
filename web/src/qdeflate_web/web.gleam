@@ -402,6 +402,76 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
       }
     }
 
+    // 12-password. Dashboard API: パスワード変更 POST /dashboard/api/password/change
+    ["dashboard", "api", "password", "change"] -> {
+      case req.method {
+        Post -> {
+          case resolve_dashboard_user(req) {
+            Ok(user) -> {
+              use form <- wisp.require_form(req)
+              let current_pw = case list.key_find(form.values, "current_password") {
+                Ok(p) -> string.trim(p)
+                Error(_) -> ""
+              }
+              let new_pw = case list.key_find(form.values, "new_password") {
+                Ok(p) -> string.trim(p)
+                Error(_) -> ""
+              }
+              let confirm_pw = case list.key_find(form.values, "confirm_password") {
+                Ok(p) -> string.trim(p)
+                Error(_) -> ""
+              }
+
+              let socket_path = "/var/run/sockets/auth.sock"
+
+              case new_pw == "" {
+                True -> {
+                  wisp.ok()
+                  |> wisp.html_body(dashboard.render_password_error("新しいパスワードを入力してください。"))
+                }
+                False -> {
+                  case new_pw != confirm_pw {
+                    True -> {
+                      wisp.ok()
+                      |> wisp.html_body(
+                        dashboard.render_password_error("新しいパスワードと確認用パスワードが一致しません。"),
+                      )
+                    }
+                    False -> {
+                      case auth_client.authenticate_user(socket_path, user.user_id, current_pw) {
+                        Ok(_) -> {
+                          case auth_client.update_password(socket_path, user.user_id, new_pw) {
+                            Ok(_) -> {
+                              wisp.ok()
+                              |> wisp.html_body(dashboard.render_password_success())
+                            }
+                            Error(err) -> {
+                              wisp.ok()
+                              |> wisp.html_body(
+                                dashboard.render_password_error("パスワード更新に失敗しました: " <> err),
+                              )
+                            }
+                          }
+                        }
+                        Error(_) -> {
+                          wisp.ok()
+                          |> wisp.html_body(
+                            dashboard.render_password_error("現在のパスワードが正しくありません。"),
+                          )
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            Error(_) -> wisp.response(401)
+          }
+        }
+        _ -> wisp.method_not_allowed([Post])
+      }
+    }
+
     // 12-b. Dashboard API: Stripe Checkout リダイレクト GET /dashboard/api/checkout
     ["dashboard", "api", "checkout"] -> {
       case req.method {
