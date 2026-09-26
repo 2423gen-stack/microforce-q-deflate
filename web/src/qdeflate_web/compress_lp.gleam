@@ -770,11 +770,11 @@ pub fn render_lp(lang: Lang) -> String {
       <div class=\"bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between hover:border-brand-500/50 transition-colors\">
         <div>
           <span class=\"text-xs font-bold text-brand-600 uppercase tracking-wider font-mono\">" <> price_starter_title <> "</span>
-          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">¥1,000 <span class=\"text-xs font-normal text-slate-500 font-mono\">($7)</span></div>
+          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">$7 <span class=\"text-xs font-normal text-slate-500 font-mono\">(~¥1,000)</span></div>
           <p class=\"text-xs text-slate-500 mt-1 font-mono\">" <> price_starter_desc <> "</p>
           <ul class=\"mt-6 space-y-2.5 text-xs text-slate-600\">
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>100 GB (100,000 MB)</span></li>
-            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>~¥10 per 1GB processed</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>~$0.07 per 1GB processed</span></li>
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>No expiration date</span></li>
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>FastMCP & REST API</span></li>
           </ul>
@@ -791,13 +791,13 @@ pub fn render_lp(lang: Lang) -> String {
         </span>
         <div>
           <span class=\"text-xs font-bold text-brand-600 uppercase tracking-wider font-mono\">" <> price_standard_title <> "</span>
-          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">¥5,000 <span class=\"text-xs font-normal text-slate-500 font-mono\">($35)</span></div>
+          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">$35 <span class=\"text-xs font-normal text-slate-500 font-mono\">(~¥5,000)</span></div>
           <p class=\"text-xs text-slate-500 mt-1 font-mono\">" <> price_standard_desc <> "</p>
           <ul class=\"mt-6 space-y-2.5 text-xs text-slate-600\">
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>550 GB (550,000 MB)</span></li>
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>50GB free bonus included</span></li>
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Priority queue</span></li>
-            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Automated corporate receipts</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Automated receipts & invoices</span></li>
           </ul>
         </div>
         <a href=\"/login\" class=\"mt-8 w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-colors block text-center shadow-md shadow-brand-500/20\">
@@ -809,7 +809,7 @@ pub fn render_lp(lang: Lang) -> String {
       <div class=\"bg-white rounded-2xl border border-purple-200 p-6 shadow-xs flex flex-col justify-between hover:border-purple-400 transition-colors\">
         <div>
           <span class=\"text-xs font-bold text-purple-600 uppercase tracking-wider font-mono\">" <> price_pro_title <> "</span>
-          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">¥5,000 <span class=\"text-xs font-normal text-slate-500 font-mono\">/ mo ($35)</span></div>
+          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">$35 <span class=\"text-xs font-normal text-slate-500 font-mono\">/ mo (~¥5,000)</span></div>
           <p class=\"text-xs text-slate-500 mt-1 font-mono\">" <> price_pro_desc <> "</p>
           <ul class=\"mt-6 space-y-2.5 text-xs text-slate-600\">
             <li class=\"flex items-center space-x-2\"><span class=\"text-purple-500 font-bold\">✓</span> <span>500 GB included / month</span></li>

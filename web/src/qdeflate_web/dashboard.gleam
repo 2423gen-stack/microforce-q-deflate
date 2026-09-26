@@ -787,7 +787,7 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         <div class=\"text-4xl font-extrabold text-slate-900 font-mono mt-1\">
           " <> float_to_mb_string(user.balance) <> " <span class=\"text-base font-normal text-slate-500\">MB</span>
         </div>
-        <p class=\"text-xs text-slate-500 mt-1\">Rate: 0.01 JPY / MB (~10 JPY per 1GB processed)</p>
+        <p class=\"text-xs text-slate-500 mt-1\">Rate: ~$0.07 / GB processed ($7 for 100 GB, no expiration)</p>
       </div>
       <div class=\"flex items-center space-x-3\">
         <span class=\"px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold\">
@@ -811,7 +811,7 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         </div>
         <div class=\"text-right\">
           <span class=\"text-xs font-mono text-slate-500\">Active Tip:</span>
-          <span id=\"display-active-tip\" class=\"text-sm font-bold font-mono text-amber-700 ml-1\">+¥0</span>
+          <span id=\"display-active-tip\" class=\"text-sm font-bold font-mono text-amber-700 ml-1\">+$0.00</span>
         </div>
       </div>
 
@@ -820,29 +820,29 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         <button type=\"button\" onclick=\"selectTip(0, this)\"
                 class=\"tip-option-btn active-tip border-2 border-slate-900 bg-white p-3 rounded-lg text-left transition-all shadow-xs\">
           <div class=\"text-xs font-bold text-slate-900\">0% (No Tip)</div>
-          <div class=\"text-[11px] text-slate-500 mt-0.5 font-mono\">¥0</div>
+          <div class=\"text-[11px] text-slate-500 mt-0.5 font-mono\">$0.00</div>
           <div class=\"text-[10px] text-slate-400 mt-1 italic\">\"Tokyo Style\"</div>
         </button>
 
-        <button type=\"button\" onclick=\"selectTip(180, this)\"
+        <button type=\"button\" onclick=\"selectTip(1.26, this)\"
                 class=\"tip-option-btn border border-slate-200 hover:border-amber-400 bg-white p-3 rounded-lg text-left transition-all shadow-xs\">
           <div class=\"text-xs font-bold text-slate-900\">18% (Fair)</div>
-          <div class=\"text-[11px] text-amber-600 font-bold font-mono mt-0.5\">+¥180</div>
+          <div class=\"text-[11px] text-amber-600 font-bold font-mono mt-0.5\">+$1.26</div>
           <div class=\"text-[10px] text-slate-500 mt-1\">Keep servers warm</div>
         </button>
 
-        <button type=\"button\" onclick=\"selectTip(250, this)\"
+        <button type=\"button\" onclick=\"selectTip(1.75, this)\"
                 class=\"tip-option-btn border border-slate-200 hover:border-amber-400 bg-white p-3 rounded-lg text-left transition-all shadow-xs\">
           <div class=\"text-xs font-bold text-slate-900\">25% (Generous)</div>
-          <div class=\"text-[11px] text-amber-600 font-bold font-mono mt-0.5\">+¥250</div>
+          <div class=\"text-[11px] text-amber-600 font-bold font-mono mt-0.5\">+$1.75</div>
           <div class=\"text-[10px] text-slate-500 mt-1\">AEON Beer 🍺</div>
         </button>
 
-        <button type=\"button\" onclick=\"selectTip(15000, this)\"
+        <button type=\"button\" onclick=\"selectTip(100, this)\"
                 class=\"tip-option-btn border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:border-orange-400 p-3 rounded-lg text-left transition-all shadow-xs relative overflow-hidden\">
           <span class=\"absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-bl\">Recommended!</span>
           <div class=\"text-xs font-bold text-orange-950\">US Dining (~$100)</div>
-          <div class=\"text-[11px] text-orange-700 font-bold font-mono mt-0.5\">+¥15,000</div>
+          <div class=\"text-[11px] text-orange-700 font-bold font-mono mt-0.5\">+$100.00</div>
           <div class=\"text-[10px] text-orange-800 font-semibold mt-1\">Full Experience 🇺🇸</div>
         </button>
       </div>
@@ -856,10 +856,10 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         <div class=\"flex items-center space-x-2\">
           <label for=\"custom-tip-input\" class=\"text-slate-600 font-medium\">Custom Tip:</label>
           <div class=\"relative rounded-md shadow-xs\">
-            <span class=\"absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-mono\">¥</span>
-            <input type=\"number\" id=\"custom-tip-input\" min=\"0\" max=\"100000\" placeholder=\"0\" step=\"100\"
+            <span class=\"absolute inset-y-0 left-0 pl-2.5 flex items-center text-slate-400 font-mono\">$</span>
+            <input type=\"number\" id=\"custom-tip-input\" min=\"0\" max=\"1000\" placeholder=\"0\" step=\"0.5\"
                    oninput=\"onCustomTipInput(this.value)\"
-                   class=\"w-28 pl-6 pr-2 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 focus:border-amber-500 font-mono text-right text-slate-800\">
+                   class=\"w-24 pl-6 pr-2 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 focus:border-amber-500 font-mono text-right text-slate-800\">
           </div>
         </div>
       </div>
@@ -867,11 +867,11 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
 
     <!-- チャージプランカード -->
     <div class=\"grid grid-cols-1 md:grid-cols-3 gap-6\">
-      <!-- 1,000円 チャージ -->
+      <!-- $7 チャージ (Starter) -->
       <div class=\"bg-white rounded-xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between hover:border-brand-500/50 transition-colors\">
         <div>
           <div class=\"text-xs font-bold text-brand-600 uppercase tracking-wider font-mono\">Starter Charge</div>
-          <div class=\"text-2xl font-extrabold text-slate-900 mt-2\">¥1,000</div>
+          <div class=\"text-2xl font-extrabold text-slate-900 mt-2\">$7</div>
           <p class=\"text-xs text-slate-500 mt-1\">+100,000 MB (100 GB)</p>
           <ul class=\"mt-4 space-y-2 text-xs text-slate-600\">
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>No monthly expiration</span></li>
@@ -881,18 +881,18 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         </div>
         <a id=\"btn-checkout-starter\" href=\"/dashboard/api/checkout?plan=starter&tip=0\"
            class=\"mt-6 w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors block text-center\">
-          Charge ¥1,000 via Stripe
+          Charge $7 via Stripe
         </a>
       </div>
 
-      <!-- 5,000円 チャージ (人気) -->
+      <!-- $35 チャージ (Standard / 人気) -->
       <div class=\"bg-white rounded-xl border-2 border-brand-500 p-6 shadow-md relative flex flex-col justify-between\">
         <span class=\"absolute -top-3 right-4 px-2.5 py-0.5 bg-brand-500 text-white rounded-full text-[10px] font-bold font-mono tracking-wide uppercase\">
           +10% Bonus
         </span>
         <div>
           <div class=\"text-xs font-bold text-brand-600 uppercase tracking-wider font-mono\">Standard Volume</div>
-          <div class=\"text-2xl font-extrabold text-slate-900 mt-2\">¥5,000</div>
+          <div class=\"text-2xl font-extrabold text-slate-900 mt-2\">$35</div>
           <p class=\"text-xs text-slate-500 mt-1\">+550,000 MB (550 GB)</p>
           <ul class=\"mt-4 space-y-2 text-xs text-slate-600\">
             <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>50,000 MB free bonus</span></li>
@@ -902,7 +902,7 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         </div>
         <a id=\"btn-checkout-standard\" href=\"/dashboard/api/checkout?plan=standard&tip=0\"
            class=\"mt-6 w-full py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors block text-center\">
-          Charge ¥5,000 via Stripe
+          Charge $35 via Stripe
         </a>
       </div>
 
@@ -910,7 +910,7 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
       <div class=\"bg-white rounded-xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between hover:border-brand-500/50 transition-colors\">
         <div>
           <div class=\"text-xs font-bold text-purple-600 uppercase tracking-wider font-mono\">Pro Monthly</div>
-          <div class=\"text-2xl font-extrabold text-slate-900 mt-2\">¥5,000 <span class=\"text-xs font-normal text-slate-500\">/ mo</span></div>
+          <div class=\"text-2xl font-extrabold text-slate-900 mt-2\">$35 <span class=\"text-xs font-normal text-slate-500\">/ mo</span></div>
           <p class=\"text-xs text-slate-500 mt-1\">500 GB included monthly</p>
           <ul class=\"mt-4 space-y-2 text-xs text-slate-600\">
             <li class=\"flex items-center space-x-2\"><span class=\"text-purple-500 font-bold\">✓</span> <span>Giga-scale single file</span></li>
@@ -925,7 +925,7 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
       </div>
     </div>
 
-    <!-- Tip 選択連動 JavaScript -->
+    <!-- Tip 選択連動 JavaScript (USD版) -->
     <script>
       let currentTip = 0;
       function selectTip(amount, btnElement) {
@@ -934,14 +934,14 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         updateTipUi(amount, btnElement);
       }
       function onCustomTipInput(val) {
-        const parsed = parseInt(val, 10);
+        const parsed = parseFloat(val);
         currentTip = (!isNaN(parsed) && parsed > 0) ? parsed : 0;
         updateTipUi(currentTip, null);
       }
       function updateTipUi(amount, activeBtn) {
         const display = document.getElementById('display-active-tip');
         if (display) {
-          display.innerText = (amount > 0 ? '+¥' + amount.toLocaleString() : '+¥0');
+          display.innerText = (amount > 0 ? '+$' + amount.toFixed(2) : '+$0.00');
         }
         document.querySelectorAll('.tip-option-btn').forEach(b => {
           b.classList.remove('border-slate-900', 'border-2');
@@ -954,14 +954,14 @@ fn render_billing_tab(user: AuthUserDetail) -> String {
         const btnStarter = document.getElementById('btn-checkout-starter');
         if (btnStarter) {
           btnStarter.href = '/dashboard/api/checkout?plan=starter&tip=' + amount;
-          const total = 1000 + amount;
-          btnStarter.innerText = (amount > 0 ? 'Charge ¥' + total.toLocaleString() + ' (incl. tip) via Stripe' : 'Charge ¥1,000 via Stripe');
+          const total = 7 + amount;
+          btnStarter.innerText = (amount > 0 ? 'Charge $' + (total % 1 === 0 ? total : total.toFixed(2)) + ' (incl. tip) via Stripe' : 'Charge $7 via Stripe');
         }
         const btnStandard = document.getElementById('btn-checkout-standard');
         if (btnStandard) {
           btnStandard.href = '/dashboard/api/checkout?plan=standard&tip=' + amount;
-          const total = 5000 + amount;
-          btnStandard.innerText = (amount > 0 ? 'Charge ¥' + total.toLocaleString() + ' (incl. tip) via Stripe' : 'Charge ¥5,000 via Stripe');
+          const total = 35 + amount;
+          btnStandard.innerText = (amount > 0 ? 'Charge $' + (total % 1 === 0 ? total : total.toFixed(2)) + ' (incl. tip) via Stripe' : 'Charge $35 via Stripe');
         }
       }
     </script>

@@ -245,22 +245,25 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                     Ok(p) -> p
                     Error(_) -> "starter"
                   }
-                  let tip_jpy = case list.key_find(query, "tip") {
-                    Ok(t_str) -> case int.parse(t_str) {
-                      Ok(t) if t > 0 -> t
-                      _ -> 0
+                  let tip_cents = case list.key_find(query, "tip") {
+                    Ok(t_str) -> case float.parse(t_str) {
+                      Ok(f) if f >. 0.0 -> float.round(f *. 100.0)
+                      _ -> case int.parse(t_str) {
+                        Ok(i) if i > 0 -> i * 100
+                        _ -> 0
+                      }
                     }
                     Error(_) -> 0
                   }
-                  let #(plan_name, amount_jpy, credits_mb) = case plan {
+                  let #(plan_name, amount_cents, credits_mb) = case plan {
                     "standard" -> #(
                       "Q-Deflate Standard Volume (+550,000 MB)",
-                      5000,
+                      3500,
                       550000.0,
                     )
                     _ -> #(
                       "Q-Deflate Starter Prepaid (+100,000 MB)",
-                      1000,
+                      700,
                       100000.0,
                     )
                   }
@@ -285,9 +288,9 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                       cancel_url,
                       user.user_id,
                       plan_name,
-                      amount_jpy,
+                      amount_cents,
                       credits_mb,
-                      tip_jpy,
+                      tip_cents,
                     )
                   {
                     Ok(session) -> {
@@ -297,9 +300,10 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                           #("checkout_url", json.string(session.url)),
                           #("session_id", json.string(session.id)),
                           #("plan", json.string(plan)),
-                          #("amount_jpy", json.int(amount_jpy)),
-                          #("tip_jpy", json.int(tip_jpy)),
-                          #("total_jpy", json.int(amount_jpy + tip_jpy)),
+                          #("currency", json.string("usd")),
+                          #("amount_cents", json.int(amount_cents)),
+                          #("tip_cents", json.int(tip_cents)),
+                          #("total_cents", json.int(amount_cents + tip_cents)),
                           #("credits_mb", json.float(credits_mb)),
                         ])
                       wisp.json_response(json.to_string(res), 200)
@@ -494,23 +498,26 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                 Ok(p) -> p
                 Error(_) -> "starter"
               }
-              let tip_jpy = case list.key_find(query, "tip") {
-                Ok(t_str) -> case int.parse(t_str) {
-                  Ok(t) if t > 0 -> t
-                  _ -> 0
+              let tip_cents = case list.key_find(query, "tip") {
+                Ok(t_str) -> case float.parse(t_str) {
+                  Ok(f) if f >. 0.0 -> float.round(f *. 100.0)
+                  _ -> case int.parse(t_str) {
+                    Ok(i) if i > 0 -> i * 100
+                    _ -> 0
+                  }
                 }
                 Error(_) -> 0
               }
 
-              let #(plan_name, amount_jpy, credits_mb) = case plan {
+              let #(plan_name, amount_cents, credits_mb) = case plan {
                 "standard" -> #(
                   "Q-Deflate Standard Volume (+550,000 MB)",
-                  5000,
+                  3500,
                   550000.0,
                 )
                 _ -> #(
                   "Q-Deflate Starter Prepaid (+100,000 MB)",
-                  1000,
+                  700,
                   100000.0,
                 )
               }
@@ -535,9 +542,9 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   cancel_url,
                   user.user_id,
                   plan_name,
-                  amount_jpy,
+                  amount_cents,
                   credits_mb,
-                  tip_jpy,
+                  tip_cents,
                 )
               {
                 Ok(session) -> {

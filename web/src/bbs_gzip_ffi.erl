@@ -23,10 +23,10 @@ get_env(KeyBin) ->
     end.
 
 
-create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountJpy, CreditsMb) ->
-    create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountJpy, CreditsMb, 0).
+create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountCents, CreditsMb) ->
+    create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountCents, CreditsMb, 0).
 
-create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountJpy, CreditsMb, TipJpy) ->
+create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, PlanNameBin, AmountCents, CreditsMb, TipCents) ->
     ssl:start(),
     inets:start(),
     Url = "https://api.stripe.com/v1/checkout/sessions",
@@ -35,7 +35,7 @@ create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, Pla
     ],
     ContentType = "application/x-www-form-urlencoded",
     
-    AmountStr = integer_to_list(AmountJpy),
+    AmountStr = integer_to_list(AmountCents),
     CreditsMbStr = float_to_list(CreditsMb, [{decimals, 1}, compact]),
     
     BaseFormData = [
@@ -43,7 +43,7 @@ create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, Pla
         {"mode", "payment"},
         {"success_url", binary_to_list(SuccessUrlBin)},
         {"cancel_url", binary_to_list(CancelUrlBin)},
-        {"line_items[0][price_data][currency]", "jpy"},
+        {"line_items[0][price_data][currency]", "usd"},
         {"line_items[0][price_data][unit_amount]", AmountStr},
         {"line_items[0][price_data][product_data][name]", binary_to_list(PlanNameBin)},
         {"line_items[0][quantity]", "1"},
@@ -51,15 +51,15 @@ create_stripe_checkout(SecretKeyBin, SuccessUrlBin, CancelUrlBin, UserIdBin, Pla
         {"metadata[credits_mb]", CreditsMbStr}
     ],
     
-    FormData = case TipJpy of
+    FormData = case TipCents of
         T when is_integer(T), T > 0 ->
             TipStr = integer_to_list(T),
             BaseFormData ++ [
-                {"line_items[1][price_data][currency]", "jpy"},
+                {"line_items[1][price_data][currency]", "usd"},
                 {"line_items[1][price_data][unit_amount]", TipStr},
                 {"line_items[1][price_data][product_data][name]", "Developer Tip (US Restaurant Style 🇺🇸)"},
                 {"line_items[1][quantity]", "1"},
-                {"metadata[tip_jpy]", TipStr}
+                {"metadata[tip_usd_cents]", TipStr}
             ];
         _ ->
             BaseFormData

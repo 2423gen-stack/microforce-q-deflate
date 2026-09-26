@@ -14,9 +14,9 @@ fn ffi_create_stripe_checkout_with_tip(
   cancel_url: String,
   user_id: String,
   plan_name: String,
-  amount_jpy: Int,
+  amount_cents: Int,
   credits_mb: Float,
-  tip_jpy: Int,
+  tip_cents: Int,
 ) -> Result(BitArray, String)
 
 @external(erlang, "bbs_gzip_ffi", "get_env")
@@ -39,20 +39,20 @@ pub fn get_stripe_secret_key() -> String {
   }
 }
 
-/// Stripe Checkout Session を作成して決済用URLを取得する（チップ額指定可能）
+/// Stripe Checkout Session を作成して決済用URLを取得する（USD Cents単位、チップ指定可能）
 pub fn create_checkout_session_with_tip(
   secret_key: String,
   success_url: String,
   cancel_url: String,
   user_id: String,
   plan_name: String,
-  amount_jpy: Int,
+  amount_cents: Int,
   credits_mb: Float,
-  tip_jpy: Int,
+  tip_cents: Int,
 ) -> Result(CheckoutSession, String) {
-  let safe_tip = case tip_jpy < 0 {
+  let safe_tip = case tip_cents < 0 {
     True -> 0
-    False -> tip_jpy
+    False -> tip_cents
   }
   case
     ffi_create_stripe_checkout_with_tip(
@@ -61,7 +61,7 @@ pub fn create_checkout_session_with_tip(
       cancel_url,
       user_id,
       plan_name,
-      amount_jpy,
+      amount_cents,
       credits_mb,
       safe_tip,
     )
@@ -76,14 +76,14 @@ pub fn create_checkout_session_with_tip(
   }
 }
 
-/// Stripe Checkout Session を作成して決済用URLを取得する（通常版: チップ0円）
+/// Stripe Checkout Session を作成して決済用URLを取得する（通常版: チップ0セント）
 pub fn create_checkout_session(
   secret_key: String,
   success_url: String,
   cancel_url: String,
   user_id: String,
   plan_name: String,
-  amount_jpy: Int,
+  amount_cents: Int,
   credits_mb: Float,
 ) -> Result(CheckoutSession, String) {
   create_checkout_session_with_tip(
@@ -92,7 +92,7 @@ pub fn create_checkout_session(
     cancel_url,
     user_id,
     plan_name,
-    amount_jpy,
+    amount_cents,
     credits_mb,
     0,
   )
