@@ -38,6 +38,11 @@ pub fn render_lp(lang: Lang) -> String {
     False -> "仕組み"
   }
 
+  let nav_pricing = case is_en {
+    True -> "Pricing"
+    False -> "料金プラン"
+  }
+
   let nav_cta = case is_en {
     True -> "Sign Up"
     False -> "新規登録"
@@ -342,6 +347,66 @@ pub fn render_lp(lang: Lang) -> String {
     False -> "WebスクレイピングデータやナレッジをLLMへ供給する直前に極小化。入力トークン消費とレイテンシをダブルで削減します。"
   }
 
+  let pricing_heading = case is_en {
+    True -> "Simple, Transparent Pricing"
+    False -> "シンプルで透明な料金プラン"
+  }
+
+  let pricing_sub = case is_en {
+    True -> "Pay only for what you compress. No surprise egress charges. Standard corporate expense friendly."
+    False -> "圧縮処理したデータ量だけの従量課金。経費精算しやすい安心の買い切り・月額プラン"
+  }
+
+  let price_free_title = case is_en {
+    True -> "Free Sandbox"
+    False -> "無料お試し"
+  }
+
+  let price_free_desc = case is_en {
+    True -> "Instant testing via Web Playground"
+    False -> "Web上で今すぐ無制限に体験"
+  }
+
+  let price_starter_title = case is_en {
+    True -> "Starter Charge"
+    False -> "スターターチャージ"
+  }
+
+  let price_starter_desc = case is_en {
+    True -> "Prepaid +100 GB balance (No expiry)"
+    False -> "100GB買い切り残高（有効期限なし）"
+  }
+
+  let price_standard_title = case is_en {
+    True -> "Standard Volume"
+    False -> "スタンダードチャージ"
+  }
+
+  let price_standard_desc = case is_en {
+    True -> "Prepaid +550 GB (+10% free bonus)"
+    False -> "550GB買い切り（50GB無料ボーナス付）"
+  }
+
+  let price_pro_title = case is_en {
+    True -> "Pro Monthly"
+    False -> "プロ月額サブスク"
+  }
+
+  let price_pro_desc = case is_en {
+    True -> "500 GB / mo included + Priority Node"
+    False -> "月500GB込み ＋ 優先クラスタノード"
+  }
+
+  let btn_get_started = case is_en {
+    True -> "Get Started Free"
+    False -> "無料で始める"
+  }
+
+  let btn_purchase = case is_en {
+    True -> "Sign Up & Purchase"
+    False -> "登録してチャージ"
+  }
+
   let footer_free = case is_en {
     True -> "1GB / month free"
     False -> "月1GBまで無料"
@@ -400,6 +465,7 @@ pub fn render_lp(lang: Lang) -> String {
       <nav class=\"flex items-center space-x-4 sm:space-x-6 text-sm font-medium text-slate-600\">
         <a href=\"#benchmark\" class=\"hover:text-brand-500 transition-colors hidden sm:inline-block\">" <> nav_benchmark <> "</a>
         <a href=\"#architecture\" class=\"hover:text-brand-500 transition-colors hidden sm:inline-block\">" <> nav_how_it_works <> "</a>
+        <a href=\"#pricing\" class=\"hover:text-brand-500 transition-colors hidden sm:inline-block\">" <> nav_pricing <> "</a>
         " <> lang_switch_html <> "
         <a href=\"/dashboard\" class=\"text-sm font-semibold text-slate-700 hover:text-brand-600 transition-colors flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50\">
           <span>📊</span>
@@ -674,7 +740,92 @@ pub fn render_lp(lang: Lang) -> String {
     </div>
   </section>
 
-  <!-- 6. ミニマルなフッター -->
+  <!-- 6. 料金プラン (Pricing & Plans) -->
+  <section id=\"pricing\" class=\"py-20 px-6 max-w-6xl mx-auto border-t border-slate-200/80 scroll-mt-20\">
+    <div class=\"text-center mb-16\">
+      <h2 class=\"text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight\">" <> pricing_heading <> "</h2>
+      <p class=\"text-sm text-slate-500 mt-2 max-w-2xl mx-auto\">" <> pricing_sub <> "</p>
+    </div>
+
+    <div class=\"grid grid-cols-1 md:grid-cols-4 gap-6\">
+      <!-- 0. Free Sandbox -->
+      <div class=\"bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-colors\">
+        <div>
+          <span class=\"text-xs font-bold text-slate-500 uppercase tracking-wider font-mono\">" <> price_free_title <> "</span>
+          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">¥0</div>
+          <p class=\"text-xs text-slate-500 mt-1 font-mono\">" <> price_free_desc <> "</p>
+          <ul class=\"mt-6 space-y-2.5 text-xs text-slate-600\">
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Web D&D Playground</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Up to 10MB per file</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Instant .gz download</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>No account needed</span></li>
+          </ul>
+        </div>
+        <a href=\"#playground\" class=\"mt-8 w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors block text-center\">
+          " <> btn_get_started <> "
+        </a>
+      </div>
+
+      <!-- 1. Starter Charge -->
+      <div class=\"bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between hover:border-brand-500/50 transition-colors\">
+        <div>
+          <span class=\"text-xs font-bold text-brand-600 uppercase tracking-wider font-mono\">" <> price_starter_title <> "</span>
+          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">¥1,000 <span class=\"text-xs font-normal text-slate-500 font-mono\">($7)</span></div>
+          <p class=\"text-xs text-slate-500 mt-1 font-mono\">" <> price_starter_desc <> "</p>
+          <ul class=\"mt-6 space-y-2.5 text-xs text-slate-600\">
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>100 GB (100,000 MB)</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>~¥10 per 1GB processed</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>No expiration date</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>FastMCP & REST API</span></li>
+          </ul>
+        </div>
+        <a href=\"/login\" class=\"mt-8 w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors block text-center shadow-xs\">
+          " <> btn_purchase <> "
+        </a>
+      </div>
+
+      <!-- 2. Standard Volume (Popular) -->
+      <div class=\"bg-white rounded-2xl border-2 border-brand-500 p-6 shadow-lg shadow-brand-500/10 relative flex flex-col justify-between\">
+        <span class=\"absolute -top-3 right-4 px-2.5 py-0.5 bg-brand-500 text-white rounded-full text-[10px] font-bold font-mono tracking-wide uppercase\">
+          +10% Free Bonus
+        </span>
+        <div>
+          <span class=\"text-xs font-bold text-brand-600 uppercase tracking-wider font-mono\">" <> price_standard_title <> "</span>
+          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">¥5,000 <span class=\"text-xs font-normal text-slate-500 font-mono\">($35)</span></div>
+          <p class=\"text-xs text-slate-500 mt-1 font-mono\">" <> price_standard_desc <> "</p>
+          <ul class=\"mt-6 space-y-2.5 text-xs text-slate-600\">
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>550 GB (550,000 MB)</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>50GB free bonus included</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Priority queue</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-emerald-500 font-bold\">✓</span> <span>Automated corporate receipts</span></li>
+          </ul>
+        </div>
+        <a href=\"/login\" class=\"mt-8 w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-colors block text-center shadow-md shadow-brand-500/20\">
+          " <> btn_purchase <> "
+        </a>
+      </div>
+
+      <!-- 3. Pro Monthly (Subscription) -->
+      <div class=\"bg-white rounded-2xl border border-purple-200 p-6 shadow-xs flex flex-col justify-between hover:border-purple-400 transition-colors\">
+        <div>
+          <span class=\"text-xs font-bold text-purple-600 uppercase tracking-wider font-mono\">" <> price_pro_title <> "</span>
+          <div class=\"text-3xl font-extrabold text-slate-900 mt-2\">¥5,000 <span class=\"text-xs font-normal text-slate-500 font-mono\">/ mo ($35)</span></div>
+          <p class=\"text-xs text-slate-500 mt-1 font-mono\">" <> price_pro_desc <> "</p>
+          <ul class=\"mt-6 space-y-2.5 text-xs text-slate-600\">
+            <li class=\"flex items-center space-x-2\"><span class=\"text-purple-500 font-bold\">✓</span> <span>500 GB included / month</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-purple-500 font-bold\">✓</span> <span>Giga-scale single file</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-purple-500 font-bold\">✓</span> <span>Dedicated cluster node</span></li>
+            <li class=\"flex items-center space-x-2\"><span class=\"text-purple-500 font-bold\">✓</span> <span>Direct Slack/Discord channel</span></li>
+          </ul>
+        </div>
+        <a href=\"/login\" class=\"mt-8 w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors block text-center shadow-md shadow-purple-500/20\">
+          " <> btn_purchase <> "
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. ミニマルなフッター -->
   <footer class=\"py-12 px-6 border-t border-slate-200 bg-white text-center text-xs text-slate-400\">
     <div class=\"max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4\">
       <div class=\"flex items-center space-x-2 font-mono\">
