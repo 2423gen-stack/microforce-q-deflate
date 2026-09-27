@@ -167,6 +167,28 @@ Q-Deflate provides a native FastMCP server, allowing autonomous AI agents (Claud
 
 ---
 
+## 🛠 Ops & Diagnostics (Layered Telemetry)
+
+For production reliability and rapid troubleshooting, Q-Deflate includes an automated diagnostic tool and layered telemetry tags:
+- `[HTTP]`: Inbound request status and route timing
+- `[AUTH_UDS]`: Unix domain socket authentication and bandwidth ledger operations
+- `[ENGINE]`: In-memory compression metrics (payload size, reduction ratio)
+- `[STRIPE]`: Webhook reconciliation and payment events
+
+### Quick Diagnostic Snapshot & Log Archive:
+```bash
+# Run one-shot health audit and save snapshot to logs/latest.log
+./scripts/save_logs.sh
+
+# Real-time color-coded streaming log inspection
+./scripts/save_logs.sh -f
+
+# Extract errors and warnings only
+./scripts/save_logs.sh -e
+```
+
+---
+
 ## 👤 Author & License
 
 - **Architect & Author**: Gen Nishizumi (西住玄)

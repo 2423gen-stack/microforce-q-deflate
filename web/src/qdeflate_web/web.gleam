@@ -31,6 +31,7 @@ pub type Context {
 
 pub fn handle_request(req: Request, _ctx: Context) -> Response {
   use req <- wisp.handle_head(req)
+  use <- wisp.log_request(req)
 
   case wisp.path_segments(req) {
     // 1. Q-Deflate LP (ランディングページ - 日本語)
@@ -134,6 +135,15 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                             Error(_) -> user.balance -. raw_mb
                           }
 
+                          wisp.log_info(
+                            "[ENGINE] Compressed "
+                            <> float.to_string(raw_mb)
+                            <> "MB (-"
+                            <> float.to_string(ratio_pct)
+                            <> "%) for user="
+                            <> user.user_id,
+                          )
+
                           wisp.ok()
                           |> wisp.set_header("content-type", "application/gzip")
                           |> wisp.set_header("x-qdeflate-processed-mb", float.to_string(raw_mb))
@@ -142,6 +152,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                           |> wisp.set_body(wisp.Bytes(bytes_tree.from_bit_array(compressed_gz)))
                         }
                         Error(err) -> {
+                          wisp.log_error("[ENGINE] Compression failed for user=" <> user.user_id <> " err=" <> err)
                           let res = json.object([
                             #("status", json.string("error")),
                             #("message", json.string("Compression failed: " <> err)),
@@ -151,6 +162,15 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                       }
                     }
                     False -> {
+                      wisp.log_warning(
+                        "[AUTH_UDS] Insufficient balance for user="
+                        <> user.user_id
+                        <> " required="
+                        <> float.to_string(raw_mb)
+                        <> "MB balance="
+                        <> float.to_string(user.balance)
+                        <> "MB",
+                      )
                       let res = json.object([
                         #("status", json.string("error")),
                         #("error_code", json.string("insufficient_funds")),
@@ -163,6 +183,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   }
                 }
                 Error(_) -> {
+                  wisp.log_warning("[AUTH_UDS] Invalid or expired API token on /api/v1/compress")
                   let res = json.object([
                     #("status", json.string("error")),
                     #("error_code", json.string("unauthorized")),
@@ -173,6 +194,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
               }
             }
             _ -> {
+              wisp.log_warning("[AUTH_UDS] Missing Bearer token on /api/v1/compress")
               let res = json.object([
                 #("status", json.string("error")),
                 #("error_code", json.string("unauthorized")),
@@ -579,6 +601,12 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   let socket_path = "/var/run/sockets/auth.sock"
                   case auth_client.add_balance(socket_path, user_id, credits_mb) {
                     Ok(updated_user) -> {
+                      wisp.log_info(
+                        "[STRIPE] Checkout completed: credited "
+                        <> float.to_string(credits_mb)
+                        <> "MB to user="
+                        <> updated_user.user_id,
+                      )
                       let res =
                         json.object([
                           #("status", json.string("ok")),
@@ -589,6 +617,12 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                       wisp.json_response(json.to_string(res), 200)
                     }
                     Error(err) -> {
+                      wisp.log_error(
+                        "[AUTH_UDS] Failed to add balance via UDS for user="
+                        <> user_id
+                        <> " err="
+                        <> err,
+                      )
                       let res =
                         json.object([
                           #("status", json.string("error")),
@@ -599,6 +633,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   }
                 }
                 Ok(stripe.OtherEvent(event_type)) -> {
+                  wisp.log_info("[STRIPE] Webhook ignored event: " <> event_type)
                   let res =
                     json.object([
                       #("status", json.string("ignored")),
@@ -607,6 +642,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   wisp.json_response(json.to_string(res), 200)
                 }
                 Error(err) -> {
+                  wisp.log_error("[STRIPE] Webhook payload parse error: " <> err)
                   let res =
                     json.object([
                       #("status", json.string("error")),
@@ -751,6 +787,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
               // 1. パスワード付き認証（User ID + Password）
               case auth_client.authenticate_user(socket_path, identifier, password) {
                 Ok(u) -> {
+                  wisp.log_info("[AUTH_UDS] Web session authenticated: user=" <> u.user_id)
                   wisp.redirect(to: "/dashboard")
                   |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.Signed, 86400)
                 }
@@ -758,10 +795,12 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   // 2. APIキー直接ログイン（qdf_live_...）
                   case auth_client.verify_api_key(socket_path, identifier) {
                     Ok(u) -> {
+                      wisp.log_info("[AUTH_UDS] Web session authenticated via API key: user=" <> u.user_id)
                       wisp.redirect(to: "/dashboard")
                       |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.Signed, 86400)
                     }
                     Error(_) -> {
+                      wisp.log_warning("[AUTH_UDS] Web login failed for identifier: " <> identifier)
                       wisp.ok()
                       |> wisp.html_body(
                         login.render_login_page(option.Some(
@@ -800,10 +839,12 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   let new_key = "qdf_live_" <> generate_random_key()
                   case auth_client.create_user(socket_path, uid, pw, new_key, 1000.0) {
                     Ok(u) -> {
+                      wisp.log_info("[AUTH_UDS] New user registered via Web: user=" <> u.user_id <> " (credited 1,000 MB)")
                       wisp.redirect(to: "/dashboard")
                       |> wisp.set_cookie(req, "qdf_session", u.user_id, wisp.Signed, 86400)
                     }
                     Error(err) -> {
+                      wisp.log_warning("[AUTH_UDS] Failed to register user " <> uid <> ": " <> err)
                       let display_err = case string.contains(err, "user_already_exists") {
                         True -> "指定されたユーザーID（" <> uid <> "）は既に使用されています。別のIDをお試しください。"
                         False -> "アカウント作成に失敗しました: " <> err
