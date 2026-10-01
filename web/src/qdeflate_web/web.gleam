@@ -31,6 +31,7 @@ pub type Context {
 }
 
 pub fn handle_request(req: Request, _ctx: Context) -> Response {
+  let req = wisp.set_max_body_size(req, 1_073_741_824)
   use req <- wisp.handle_head(req)
   use <- wisp.log_request(req)
 
