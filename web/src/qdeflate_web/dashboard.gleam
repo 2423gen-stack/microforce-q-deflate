@@ -413,6 +413,11 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
         <div>
           <h2 class=\"text-base font-bold text-slate-800\">Drop file or folder here</h2>
           <p class=\"text-xs text-slate-400 mt-1 font-mono\">JSON, Logs, CSV, Bundle JS, SQL, or whole directories</p>
+          <div class=\"mt-2 inline-flex items-center space-x-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg text-[11px] font-mono text-amber-800\">
+            <span class=\"font-bold\">⚡ Web Upload Limit: Max 100 MB per file</span>
+            <span class=\"text-slate-300\">|</span>
+            <span class=\"text-amber-700\">For GB+ files & DB dumps, use local <code>qdeflate</code> CLI (Docs tab)</span>
+          </div>
         </div>
         <div class=\"flex items-center justify-center space-x-3 pt-2\">
           <button type=\"button\" onclick=\"event.stopPropagation(); document.getElementById('compress-file-input').click()\"
@@ -759,6 +764,12 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
 
       try {
         const blob = await selectedPayload.getBlob();
+        if (blob.size > 100 * 1024 * 1024) {
+          alert('【Web Upload Limit: 100MB】\n選択されたファイル/フォルダ（' + (blob.size / (1024 * 1024)).toFixed(1) + ' MB）はWebアップロード上限（100MB）を超えています。\n\n100MB〜GB/TB級のファイルや社内機密DBは、Docsタブで案内しているローカル用「qdeflate」CLIをご利用ください（外部通信不要・ローカル完結・容量無制限）。');
+          document.getElementById('dropzone-spinner').classList.add('hidden');
+          document.getElementById('dropzone-prompt').classList.remove('hidden');
+          return;
+        }
         const url = '/dashboard/api/compress?filename=' + encodeURIComponent(selectedPayload.name);
         const res = await fetch(url, {
           method: 'POST',
@@ -1251,18 +1262,43 @@ fn render_docs_tab(user: AuthUserDetail) -> String {
     </div>
 
     <!-- cURL スニペット -->
-    <div class=\"bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-3\">
+    <div class=\"bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4\">
       <div class=\"flex items-center justify-between\">
         <h2 class=\"text-base font-bold text-slate-900 flex items-center space-x-2\">
           <span class=\"text-brand-500 font-mono\">$</span>
-          <span>cURL (CLI & Bash)</span>
+          <span>cURL (HTTP API Mode - Up to 100 MB)</span>
         </h2>
         <button id=\"btn-copy-curl\" onclick=\"copyToClipboard(document.getElementById('code-curl').innerText, 'btn-copy-curl')\" class=\"text-xs font-semibold px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 transition-colors\">Copy Code</button>
       </div>
+      <p class=\"text-xs text-slate-500 font-sans\">
+        Instant cloud compression for web assets, JSON payloads, and log archives up to <strong>100 MB</strong> via public REST API.
+      </p>
       <div class=\"bg-slate-900 rounded-lg p-4 font-mono text-xs text-slate-200 overflow-x-auto border border-slate-800\">
         <pre id=\"code-curl\"><code>curl -X POST https://microforce.dev/api/v1/compress \\
   -H \"Authorization: Bearer " <> user.api_key <> "\" \\
-  --data-binary @huge_payload.json -o huge_payload.json.gz</code></pre>
+  --data-binary @payload.json -o payload.json.gz</code></pre>
+      </div>
+
+      <!-- GB+ / Local CLI Guidance -->
+      <div class=\"p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2\">
+        <div class=\"flex items-center justify-between\">
+          <div class=\"flex items-center space-x-2\">
+            <span class=\"text-base\">⚡</span>
+            <strong class=\"text-xs font-bold text-slate-800 font-mono\">GB+ Files & Production DB Dumps: Local <code>qdeflate</code> CLI</strong>
+          </div>
+          <span class=\"px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold\">Zero-Network / Unlimited</span>
+        </div>
+        <p class=\"text-[11px] text-slate-600 font-sans leading-relaxed\">
+          Transferring multi-gigabyte SQL dumps or heavy logs over HTTP creates network wait times and risks corporate compliance leaks. 
+          Use the local <code>qdeflate</code> native tool on your server. <strong>Decompression requires ZERO client-side tools</strong> (100% standard gunzip / tar -xzf compatible everywhere).
+        </p>
+        <div class=\"bg-slate-900 rounded-lg p-3 font-mono text-[11px] text-slate-200 overflow-x-auto border border-slate-800\">
+          <pre><code># Pipe streaming without network transmission:
+mysqldump production_db | qdeflate &gt; backup.sql.gz
+
+# Archive huge directory at line rate:
+tar -cf - /var/log | qdeflate &gt; logs.tar.gz</code></pre>
+        </div>
       </div>
     </div>
 
@@ -1580,6 +1616,10 @@ if (res.ok) {
         <span>Frequently Asked Questions (FAQ)</span>
       </h2>
       <div class=\"divide-y divide-slate-100 text-xs space-y-3 pt-1\">
+        <div class=\"pt-3 space-y-1\">
+          <p class=\"font-bold text-slate-900\">Q. What is the maximum file size for compression?</p>
+          <p class=\"text-slate-600 leading-relaxed\">A. The Web Compress Studio and public HTTP REST API support up to <strong>100 MB per file</strong> (optimized for web bundles, JSON, and deployment archives). For files exceeding 100 MB up to gigabytes/terabytes (e.g. database dumps, big data logs), use our native <code>qdeflate</code> CLI on your server to compress directly with zero network transfer latency. Decompressed files remain 100% standard gzip everywhere.</p>
+        </div>
         <div class=\"pt-3 space-y-1\">
           <p class=\"font-bold text-slate-900\">Q. Do I need specialized software to decompress Q-Deflate files?</p>
           <p class=\"text-slate-600 leading-relaxed\">A. No specialized software is needed. Q-Deflate is 100% compliant with the RFC 1951 standard (Deflate / Gzip). Files decompress natively with standard <code>gunzip</code>, <code>tar -xzf</code>, Python's built-in <code>gzip</code> module, and default operating system archive utilities with zero overhead.</p>

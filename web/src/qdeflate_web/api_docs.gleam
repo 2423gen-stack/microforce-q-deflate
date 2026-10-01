@@ -27,7 +27,15 @@ pub fn get_api_spec_json() -> String {
         json.object([
           #("path", json.string("/api/v1/compress")),
           #("method", json.string("POST")),
-          #("description", json.string("Compresses arbitrary raw binary, JSON, logs, or text payloads using multidimensional geometric solver. Returns standard RFC 1951 gzip stream.")),
+          #("description", json.string("Compresses arbitrary raw binary, JSON, logs, or text payloads using multidimensional geometric solver. Returns standard RFC 1951 gzip stream. Single-request HTTP payload limit is 100 MB. For GB+ files, use local qdeflate CLI.")),
+          #(
+            "payload_limits",
+            json.object([
+              #("http_max_body_bytes", json.int(104857600)),
+              #("http_max_body_mb", json.string("100 MB")),
+              #("large_files_guidance", json.string("For files > 100 MB up to GB/TB scale, execute via local qdeflate CLI pipeline to avoid HTTP transfer latencies. Decompression remains 100% RFC 1951 compliant gunzip/tar everywhere.")),
+            ]),
+          ),
           #(
             "headers",
             json.object([
