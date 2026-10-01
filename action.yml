@@ -59,8 +59,15 @@ runs:
         TOTAL_COMP=0
         COUNT=0
 
-        # 対象ファイル探索
-        find "$QDF_PATH" -type f \( $(echo "$QDF_EXTS" | awk '{for(i=1;i<=NF;i++) printf "-name \"*."$i"\" " (i<NF?"-o ":"")}') \) | while read -r file; do
+        # 安全なfind条件配列の構築（シェルインジェクション・悪意あるファイル名の完全防護）
+        find_args=()
+        for ext in $QDF_EXTS; do
+          [ ${#find_args[@]} -gt 0 ] && find_args+=(-o)
+          find_args+=(-name "*.$ext")
+        done
+
+        # NULL文字区切り（-print0）で安全に走査
+        find "$QDF_PATH" -type f \( "${find_args[@]}" \) -print0 | while IFS= read -r -d '' file; do
           [ -f "$file" ] || continue
           
           ORIG_SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
