@@ -120,13 +120,13 @@ pub fn render_lp(lang: Lang) -> String {
   }
 
   let pg_drop_label = case is_en {
-    True -> "Drag & drop your file here, or click to browse"
-    False -> "ファイルをドラッグ＆ドロップ、またはクリックして選択"
+    True -> "Drag & drop file or folder here"
+    False -> "ファイルまたはフォルダをドラッグ＆ドロップ"
   }
 
   let pg_supported = case is_en {
-    True -> "Supported: JSON, CSV, Logs, Text, JS, CSS, SVG"
-    False -> "対応: JSON, CSV, ログ, テキスト, JS, CSS, SVG"
+    True -> "Supported: JSON, CSV, Logs, Text, JS, CSS, SVG, or whole directories"
+    False -> "対応: JSON, CSV, ログ, テキスト, JS, CSS, またはフォルダ丸ごと"
   }
 
   let pg_btn = case is_en {
@@ -412,6 +412,46 @@ pub fn render_lp(lang: Lang) -> String {
     False -> "月1GBまで無料"
   }
 
+  let footer_contact_title = case is_en {
+    True -> "Support & Inquiries"
+    False -> "サポート・お問い合わせ"
+  }
+
+  let footer_legal_title = case is_en {
+    True -> "Commercial Disclosure"
+    False -> "特定商取引法に基づく表記・運営者情報"
+  }
+
+  let footer_entity_label = case is_en {
+    True -> "Entity / Operator"
+    False -> "事業者・運営責任者"
+  }
+
+  let footer_entity_val = case is_en {
+    True -> "Microforce Project (Gen Nishizumi)"
+    False -> "Microforce Project (西住 玄)"
+  }
+
+  let footer_payment_label = case is_en {
+    True -> "Payment Methods"
+    False -> "支払方法"
+  }
+
+  let footer_payment_val = case is_en {
+    True -> "Credit Cards (Stripe Checkout)"
+    False -> "クレジットカード (Stripe Checkout)"
+  }
+
+  let footer_refund_label = case is_en {
+    True -> "Refund Policy"
+    False -> "返金・キャンセル"
+  }
+
+  let footer_refund_val = case is_en {
+    True -> "Instant digital credit delivery; top-ups are non-refundable."
+    False -> "デジタルクレジットの即時付与特性上、チャージ完了後の返金は致しかねます。"
+  }
+
   let playground_endpoint = case is_en {
     True -> "/compress/try?lang=en"
     False -> "/compress/try?lang=ja"
@@ -527,36 +567,55 @@ pub fn render_lp(lang: Lang) -> String {
         </span>
       </div>
 
-      <!-- ドロップゾーン (htmx連携) -->
-      <form id=\"compress-form\"
-            hx-post=\"" <> playground_endpoint <> "\"
-            hx-encoding=\"multipart/form-data\"
-            hx-target=\"#playground-result\"
-            hx-indicator=\"#compress-spinner\"
-            class=\"relative border-2 border-dashed border-slate-200 hover:border-brand-500 rounded-xl p-8 sm:p-12 text-center transition-colors bg-slate-50/50 hover:bg-brand-50/30 cursor-pointer group\">
+      <!-- ドロップゾーン (HTMX & Native JS 連携) -->
+      <div id=\"playground-dropzone\"
+           class=\"relative border-2 border-dashed border-slate-200 hover:border-brand-500 rounded-xl p-8 sm:p-12 text-center transition-colors bg-slate-50/50 hover:bg-brand-50/30 cursor-pointer group\">
         
-        <input type=\"file\" name=\"file\" id=\"file-input\" required class=\"absolute inset-0 w-full h-full opacity-0 cursor-pointer\" onchange=\"document.getElementById('file-label').innerText = this.files[0].name; document.getElementById('submit-btn').classList.remove('hidden');\">
+        <input type=\"file\" id=\"pg-file-input\" class=\"hidden\" onchange=\"handlePgFileSelect(this.files)\">
+        <input type=\"file\" id=\"pg-folder-input\" class=\"hidden\" webkitdirectory directory multiple onchange=\"handlePgFolderSelect(this.files)\">
         
-        <div class=\"space-y-4 pointer-events-none\">
+        <div id=\"pg-prompt\" class=\"space-y-4\">
           <div class=\"w-12 h-12 rounded-full bg-brand-50 group-hover:bg-brand-100 text-brand-500 mx-auto flex items-center justify-center text-xl transition-colors\">
             ☁️
           </div>
           <div>
-            <p id=\"file-label\" class=\"text-sm font-semibold text-slate-700 group-hover:text-brand-600 transition-colors\">
+            <p id=\"pg-label\" class=\"text-sm font-semibold text-slate-700 group-hover:text-brand-600 transition-colors\">
               " <> pg_drop_label <> "
             </p>
             <p class=\"text-xs text-slate-400 mt-1 font-mono\">
               " <> pg_supported <> "
             </p>
           </div>
+          <div class=\"flex items-center justify-center space-x-3 pt-2\">
+            <button type=\"button\" onclick=\"event.stopPropagation(); document.getElementById('pg-file-input').click()\"
+                    class=\"px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg shadow-2xs border border-slate-200 transition-colors flex items-center space-x-1.5\">
+              <span>📄</span>
+              <span>" <> case is_en { True -> "Browse File" False -> "ファイル選択" } <> "</span>
+            </button>
+            <span class=\"text-xs text-slate-300\">or</span>
+            <button type=\"button\" onclick=\"event.stopPropagation(); triggerPgFolderPicker(event)\"
+                    class=\"px-3.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold rounded-lg border border-brand-200 transition-colors flex items-center space-x-1.5\">
+              <span>📁</span>
+              <span>" <> case is_en { True -> "Browse Folder" False -> "フォルダ選択" } <> "</span>
+            </button>
+          </div>
         </div>
 
-        <div class=\"mt-6\">
-          <button type=\"submit\" id=\"submit-btn\" class=\"hidden px-6 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-lg shadow-sm transition-all pointer-events-auto\">
-            " <> pg_btn <> "
-          </button>
+        <!-- 選択時の情報表示 -->
+        <div id=\"pg-file-info\" class=\"hidden space-y-4\">
+          <div class=\"inline-flex items-center space-x-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-2xs\">
+            <span id=\"pg-fileicon\">📄</span>
+            <span id=\"pg-filename\" class=\"font-bold\">data.json</span>
+            <span id=\"pg-filesize\" class=\"text-slate-400\">(1.2 MB)</span>
+          </div>
+          <div>
+            <button type=\"button\" id=\"pg-submit-btn\" onclick=\"startPgCompression(event)\"
+                    class=\"px-6 py-2.5 text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-lg shadow-md shadow-brand-500/25 transition-all hover:scale-105 active:scale-95\">
+              " <> pg_btn <> "
+            </button>
+          </div>
         </div>
-      </form>
+      </div>
 
       <!-- スピナー (処理中インジケータ) -->
       <div id=\"compress-spinner\" class=\"htmx-indicator mt-6 text-center py-4\">
@@ -825,21 +884,311 @@ pub fn render_lp(lang: Lang) -> String {
     </div>
   </section>
 
-  <!-- 7. ミニマルなフッター -->
-  <footer class=\"py-12 px-6 border-t border-slate-200 bg-white text-center text-xs text-slate-400\">
-    <div class=\"max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4\">
-      <div class=\"flex items-center space-x-2 font-mono\">
-        <span class=\"font-bold text-slate-700\">Q-Deflate</span>
-        <span>— RFC 1951 Compatible High-Density Compression</span>
+  <!-- 7. フッター（サポート窓口・特定商取引法に基づく表記） -->
+  <footer class=\"py-12 px-6 border-t border-slate-200 bg-white text-xs text-slate-500\">
+    <div class=\"max-w-6xl mx-auto space-y-8\">
+      <!-- 上段: ナビゲーション & お問い合わせ -->
+      <div class=\"flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-100\">
+        <div class=\"space-y-1\">
+          <div class=\"flex items-center space-x-2 font-mono\">
+            <span class=\"font-bold text-slate-800 text-sm\">Q-Deflate</span>
+            <span class=\"text-slate-400\">— RFC 1951 Compatible High-Density Compression</span>
+          </div>
+          <div class=\"text-[11px] text-slate-500\">
+            <span>" <> footer_contact_title <> ": </span>
+            <a href=\"mailto:support@microforce.dev\" class=\"font-mono font-medium text-blue-600 hover:underline\">support@microforce.dev</a>
+          </div>
+        </div>
+        <div class=\"flex flex-wrap items-center gap-6 text-slate-500 text-xs font-mono\">
+          <a href=\"#playground\" class=\"hover:text-slate-900 transition-colors\">Web Playground</a>
+          <a href=\"/dashboard\" class=\"hover:text-slate-900 transition-colors\">Dashboard</a>
+          <a href=\"/login\" class=\"hover:text-slate-900 transition-colors\">Sign In</a>
+          <a href=\"/privacy\" class=\"hover:text-slate-900 transition-colors\">Privacy Policy</a>
+          <span class=\"px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200\">" <> footer_free <> "</span>
+        </div>
       </div>
-      <div class=\"flex items-center space-x-6 text-slate-500\">
-        <a href=\"#playground\" class=\"hover:text-slate-900\">Web Playground</a>
-        <a href=\"/dashboard\" class=\"hover:text-slate-900\">Dashboard</a>
-        <span>" <> footer_free <> "</span>
+
+      <!-- 下段: 特定商取引法に基づく表記 / Commercial Disclosure -->
+      <div class=\"bg-slate-50 rounded-xl p-5 border border-slate-100 font-mono text-[11px] text-slate-500 space-y-2\">
+        <div class=\"font-bold text-slate-700 uppercase tracking-wider text-[10px]\">" <> footer_legal_title <> "</div>
+        <div class=\"grid grid-cols-1 md:grid-cols-2 gap-y-1.5 gap-x-6\">
+          <div><span class=\"text-slate-400\">" <> footer_entity_label <> ":</span> <span class=\"text-slate-700 font-medium\">" <> footer_entity_val <> "</span></div>
+          <div><span class=\"text-slate-400\">Email:</span> <a href=\"mailto:support@microforce.dev\" class=\"text-blue-600 hover:underline\">support@microforce.dev</a></div>
+          <div><span class=\"text-slate-400\">" <> footer_payment_label <> ":</span> <span class=\"text-slate-700\">" <> footer_payment_val <> "</span></div>
+          <div><span class=\"text-slate-400\">" <> footer_refund_label <> ":</span> <span class=\"text-slate-700\">" <> footer_refund_val <> "</span></div>
+        </div>
+      </div>
+
+      <!-- コピーライト -->
+      <div class=\"text-center text-[11px] text-slate-400 font-mono\">
+        &copy; 2026 Microforce Project. Built with Gleam &amp; Erlang/BEAM. All rights reserved.
       </div>
     </div>
-  </footer>
+  <script>
+    let pgPayload = null;
 
+    class PgSimpleTarBuilder {
+      constructor() { this.records = []; }
+      addFile(path, uint8Array, modTime = Math.floor(Date.now() / 1000)) {
+        this.records.push({ path, data: uint8Array, mtime: modTime });
+      }
+      build() {
+        const textEncoder = new TextEncoder();
+        const blockParts = [];
+        for (const rec of this.records) {
+          const header = new Uint8Array(512);
+          const nameBytes = textEncoder.encode(rec.path);
+          header.set(nameBytes.subarray(0, 100), 0);
+          const padNull = String.fromCharCode(0);
+          header.set(textEncoder.encode('0000644' + padNull), 100);
+          header.set(textEncoder.encode('0000000' + padNull), 108);
+          header.set(textEncoder.encode('0000000' + padNull), 116);
+          const sizeStr = rec.data.length.toString(8).padStart(11, '0') + padNull;
+          header.set(textEncoder.encode(sizeStr), 124);
+          const mtimeStr = rec.mtime.toString(8).padStart(11, '0') + padNull;
+          header.set(textEncoder.encode(mtimeStr), 136);
+          header.set(textEncoder.encode('        '), 148);
+          header[156] = 48;
+          header.set(textEncoder.encode('ustar' + padNull + '00'), 257);
+          let checksum = 0;
+          for (let i = 0; i < 512; i++) checksum += header[i];
+          const chkStr = checksum.toString(8).padStart(6, '0') + padNull + ' ';
+          header.set(textEncoder.encode(chkStr), 148);
+          blockParts.push(header);
+          blockParts.push(rec.data);
+          const remainder = rec.data.length % 512;
+          if (remainder !== 0) blockParts.push(new Uint8Array(512 - remainder));
+        }
+        blockParts.push(new Uint8Array(1024));
+        return new Blob(blockParts, { type: 'application/x-tar' });
+      }
+    }
+
+    const pgDropzone = document.getElementById('playground-dropzone');
+    if (pgDropzone) {
+      pgDropzone.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+          document.getElementById('pg-file-input').click();
+        }
+      });
+      ['dragenter', 'dragover'].forEach(name => {
+        pgDropzone.addEventListener(name, (e) => {
+          e.preventDefault(); e.stopPropagation();
+          pgDropzone.classList.add('border-brand-500', 'bg-brand-50/20');
+        }, false);
+      });
+      ['dragleave', 'drop'].forEach(name => {
+        pgDropzone.addEventListener(name, (e) => {
+          e.preventDefault(); e.stopPropagation();
+          pgDropzone.classList.remove('border-brand-500', 'bg-brand-50/20');
+        }, false);
+      });
+      pgDropzone.addEventListener('drop', async (e) => {
+        const dt = e.dataTransfer;
+        if (!dt) return;
+        if (dt.items && dt.items.length > 0) {
+          const item = dt.items[0];
+          const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+          if (entry && entry.isDirectory) {
+            await handlePgDirectoryEntry(entry);
+            return;
+          }
+        }
+        if (dt.files && dt.files.length > 0) {
+          handlePgFileSelect(dt.files);
+        }
+      }, false);
+    }
+
+    async function handlePgDirectoryEntry(dirEntry) {
+      const fileEntries = [];
+      async function scanDir(entry, path = '') {
+        const fullPath = path ? path + '/' + entry.name : entry.name;
+        if (entry.isFile) {
+          const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+          fileEntries.push({ path: fullPath, file });
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const entries = await new Promise((resolve, reject) => {
+            const results = [];
+            function readBatch() {
+              reader.readEntries((batch) => {
+                if (!batch || batch.length === 0) resolve(results);
+                else { results.push(...batch); readBatch(); }
+              }, reject);
+            }
+            readBatch();
+          });
+          for (const sub of entries) await scanDir(sub, fullPath);
+        }
+      }
+      await scanDir(dirEntry);
+      let totalSize = 0;
+      fileEntries.forEach(f => totalSize += f.file.size);
+
+      pgPayload = {
+        name: dirEntry.name + '.tar',
+        displayName: dirEntry.name + '/',
+        isFolder: true,
+        count: fileEntries.length,
+        totalSize: totalSize,
+        getBlob: async () => {
+          const tar = new PgSimpleTarBuilder();
+          for (const item of fileEntries) {
+            const buf = await item.file.arrayBuffer();
+            tar.addFile(item.path, new Uint8Array(buf), Math.floor(item.file.lastModified / 1000));
+          }
+          return tar.build();
+        }
+      };
+
+      document.getElementById('pg-prompt').classList.add('hidden');
+      document.getElementById('pg-file-info').classList.remove('hidden');
+      document.getElementById('pg-fileicon').textContent = '📁';
+      document.getElementById('pg-filename').textContent = pgPayload.displayName;
+      document.getElementById('pg-filesize').textContent = '(' + pgPayload.count + ' files, ' + (totalSize / 1024).toFixed(1) + ' KB)';
+    }
+
+    // File System Access API を使ったフォルダ選択（LP Playground用）
+    // Linux の webkitdirectory 問題（GTKピッカーでフォルダが選択できない）を回避
+    async function triggerPgFolderPicker(event) {
+      event.stopPropagation();
+      if (window.showDirectoryPicker) {
+        try {
+          const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+          await handlePgDirectoryHandle(dirHandle);
+        } catch(e) {
+          // ユーザーがキャンセルした場合は何もしない
+          if (e.name !== 'AbortError') console.error('フォルダ選択エラー:', e);
+        }
+      } else {
+        // フォールバック（File System Access API 非対応ブラウザ）
+        const fi = document.getElementById('pg-folder-input');
+        fi.value = '';
+        fi.click();
+      }
+    }
+
+    // FileSystemDirectoryHandle を再帰スキャン（LP Playground用）
+    async function handlePgDirectoryHandle(dirHandle) {
+      document.getElementById('pg-prompt').classList.add('hidden');
+      document.getElementById('compress-spinner').classList.remove('htmx-indicator');
+
+      const fileEntries = [];
+      async function scanHandle(handle, path) {
+        if (handle.kind === 'file') {
+          const file = await handle.getFile();
+          fileEntries.push({ path: path, file: file });
+        } else if (handle.kind === 'directory') {
+          for await (const [name, child] of handle.entries()) {
+            await scanHandle(child, path ? path + '/' + name : name);
+          }
+        }
+      }
+
+      await scanHandle(dirHandle, dirHandle.name);
+      let totalSize = 0;
+      fileEntries.forEach(f => totalSize += f.file.size);
+
+      pgPayload = {
+        name: dirHandle.name + '.tar',
+        displayName: dirHandle.name + '/',
+        isFolder: true,
+        count: fileEntries.length,
+        totalSize: totalSize,
+        getBlob: async () => {
+          const tar = new PgSimpleTarBuilder();
+          for (const item of fileEntries) {
+            const buf = await item.file.arrayBuffer();
+            tar.addFile(item.path, new Uint8Array(buf), Math.floor(item.file.lastModified / 1000));
+          }
+          return tar.build();
+        }
+      };
+
+      document.getElementById('compress-spinner').classList.add('htmx-indicator');
+      document.getElementById('pg-file-info').classList.remove('hidden');
+      document.getElementById('pg-fileicon').textContent = '📁';
+      document.getElementById('pg-filename').textContent = pgPayload.displayName;
+      document.getElementById('pg-filesize').textContent = '(' + fileEntries.length + ' files, ' + (totalSize / 1024).toFixed(1) + ' KB)';
+    }
+
+    function handlePgFolderSelect(files) {
+      if (!files || files.length === 0) return;
+      const fileList = Array.from(files);
+      let totalSize = 0;
+      fileList.forEach(f => totalSize += f.size);
+      const firstPath = fileList[0].webkitRelativePath || fileList[0].name;
+      const folderName = firstPath.split('/')[0] || 'archive';
+
+      pgPayload = {
+        name: folderName + '.tar',
+        displayName: folderName + '/',
+        isFolder: true,
+        count: fileList.length,
+        totalSize: totalSize,
+        getBlob: async () => {
+          const tar = new PgSimpleTarBuilder();
+          for (const file of fileList) {
+            const relPath = file.webkitRelativePath || file.name;
+            const buf = await file.arrayBuffer();
+            tar.addFile(relPath, new Uint8Array(buf), Math.floor(file.lastModified / 1000));
+          }
+          return tar.build();
+        }
+      };
+
+      document.getElementById('pg-prompt').classList.add('hidden');
+      document.getElementById('pg-file-info').classList.remove('hidden');
+      document.getElementById('pg-fileicon').textContent = '📁';
+      document.getElementById('pg-filename').textContent = pgPayload.displayName;
+      document.getElementById('pg-filesize').textContent = '(' + pgPayload.count + ' files, ' + (totalSize / 1024).toFixed(1) + ' KB)';
+    }
+
+    function handlePgFileSelect(files) {
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      pgPayload = {
+        name: file.name,
+        displayName: file.name,
+        isFolder: false,
+        totalSize: file.size,
+        getBlob: async () => file
+      };
+      document.getElementById('pg-prompt').classList.add('hidden');
+      document.getElementById('pg-file-info').classList.remove('hidden');
+      document.getElementById('pg-fileicon').textContent = '📄';
+      document.getElementById('pg-filename').textContent = file.name;
+      document.getElementById('pg-filesize').textContent = '(' + (file.size / 1024).toFixed(1) + ' KB)';
+    }
+
+    async function startPgCompression(e) {
+      e.stopPropagation();
+      if (!pgPayload) return;
+      document.getElementById('pg-file-info').classList.add('hidden');
+      document.getElementById('compress-spinner').classList.remove('htmx-indicator');
+
+      try {
+        const blob = await pgPayload.getBlob();
+        const baseEndpoint = '" <> playground_endpoint <> "';
+        const url = baseEndpoint + '&filename=' + encodeURIComponent(pgPayload.name);
+        const res = await fetch(url, {
+          method: 'POST',
+          body: blob,
+          headers: { 'Content-Type': 'application/octet-stream' }
+        });
+        const html = await res.text();
+        document.getElementById('compress-spinner').classList.add('htmx-indicator');
+        document.getElementById('pg-prompt').classList.remove('hidden');
+        document.getElementById('playground-result').innerHTML = html;
+        pgPayload = null;
+      } catch (err) {
+        alert('Compression failed: ' + err);
+        document.getElementById('compress-spinner').classList.add('htmx-indicator');
+        document.getElementById('pg-prompt').classList.remove('hidden');
+      }
+    }
+  </script>
 </body>
 </html>"
 }
@@ -907,7 +1256,7 @@ pub fn render_playground_result(
           </p>
         </div>
         <div class=\"flex items-center space-x-2\">
-          <a href=\"/compress/download/" <> download_id <> "\" download=\"" <> filename <> ".gz\"
+          <a href=\"/compress/download/" <> download_id <> "?filename=" <> filename <> ".gz\" download=\"" <> filename <> ".gz\"
              class=\"inline-flex items-center justify-center px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all hover:scale-105 active:scale-95\">
             " <> dl_btn <> "
           </a>

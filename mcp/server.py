@@ -9,6 +9,7 @@ AIエージェントが自律的に超高密度圧縮、残高照会、課金決
 
 import os
 import json
+import base64
 import urllib.request
 import urllib.error
 from mcp.server.fastmcp import FastMCP
@@ -80,6 +81,7 @@ def qdeflate_compress(data_string: str, api_token: str) -> str:
                 "processed_mb": processed_mb,
                 "remaining_balance_mb": remaining_mb,
                 "is_valid_rfc1951_gzip": gz_data[:2] == b"\x1f\x8b",
+                "compressed_base64": base64.b64encode(gz_data).decode("ascii"),
             }, ensure_ascii=False, indent=2)
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")

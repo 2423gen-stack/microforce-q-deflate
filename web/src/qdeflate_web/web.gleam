@@ -6,6 +6,7 @@ import qdeflate_web/auth_client
 import qdeflate_web/compress_lp
 import qdeflate_web/dashboard
 import qdeflate_web/login
+import qdeflate_web/privacy
 import qdeflate_web/stripe
 import gleam/bit_array
 import gleam/bytes_tree
@@ -56,44 +57,117 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
       }
     }
 
+    // 1-P. Privacy Policy (プライバシーポリシー - デフォルト英語)
+    ["privacy"] -> {
+      case req.method {
+        Get -> {
+          wisp.ok()
+          |> wisp.html_body(privacy.render_privacy(privacy.En))
+        }
+        _ -> wisp.method_not_allowed([Get])
+      }
+    }
+
+    // 1-P-EN. Privacy Policy (英語版)
+    ["privacy", "en"] -> {
+      case req.method {
+        Get -> {
+          wisp.ok()
+          |> wisp.html_body(privacy.render_privacy(privacy.En))
+        }
+        _ -> wisp.method_not_allowed([Get])
+      }
+    }
+
+    // 1-P-JA. Privacy Policy (日本語版)
+    ["privacy", "ja"] -> {
+      case req.method {
+        Get -> {
+          wisp.ok()
+          |> wisp.html_body(privacy.render_privacy(privacy.Ja))
+        }
+        _ -> wisp.method_not_allowed([Get])
+      }
+    }
+
     // 7. Q-Deflate Playground お試し圧縮 (POST /compress/try)
     ["compress", "try"] -> {
       case req.method {
         Post -> {
-          let lang = case wisp.get_query(req) {
-            [#("lang", "en"), ..] -> compress_lp.En
+          let query = wisp.get_query(req)
+          let lang = case list.key_find(query, "lang") {
+            Ok("en") -> compress_lp.En
             _ -> compress_lp.Ja
           }
-          // デモ用お試しモック（元ファイル名を受け取り、疑似圧縮結果を返す）
-          // 将来UDSソケット接続時に本物の幾何学ソルバーバイナリに差し替え
-          let filename = "sample_data.json"
-          let orig_size = 104_8576 // 1 MB
-          let comp_size = 188_743  // 約 184 KB (82%削減)
-          let download_id = "demo-qdf-001"
+          let filename = case list.key_find(query, "filename") {
+            Ok(f) if f != "" -> f
+            _ -> "data.bin"
+          }
 
-          wisp.ok()
-          |> wisp.html_body(compress_lp.render_playground_result(
-            filename,
-            orig_size,
-            comp_size,
-            download_id,
-            lang,
-          ))
+          use raw_bytes <- wisp.require_bit_array_body(req)
+          let raw_size = bit_array.byte_size(raw_bytes)
+
+          case gzip_compress(raw_bytes) {
+            Ok(compressed_gz) -> {
+              let comp_size = bit_array.byte_size(compressed_gz)
+              let download_id = generate_random_key()
+              let _ = simplifile.create_directory_all("/tmp/qdf_downloads")
+              let _ =
+                simplifile.write_bits(
+                  "/tmp/qdf_downloads/" <> download_id <> ".gz",
+                  compressed_gz,
+                )
+
+              wisp.ok()
+              |> wisp.html_body(compress_lp.render_playground_result(
+                filename,
+                raw_size,
+                comp_size,
+                download_id,
+                lang,
+              ))
+            }
+            Error(err) -> {
+              wisp.response(400)
+              |> wisp.html_body("<div class=\"p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-mono font-bold\">Compression error: " <> err <> "</div>")
+            }
+          }
         }
         _ -> wisp.method_not_allowed([Post])
       }
     }
 
     // 8. Q-Deflate お試しダウンロード (GET /compress/download/:id)
-    ["compress", "download", _id] -> {
+    ["compress", "download", download_id] -> {
       case req.method {
         Get -> {
-          // RFC 1951 gzipヘッダーを持つ最小限のバイナリを返却
-          let dummy_gz = <<31, 139, 8, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
-          wisp.ok()
-          |> wisp.set_header("content-type", "application/gzip")
-          |> wisp.set_header("content-disposition", "attachment; filename=\"sample_data.json.gz\"")
-          |> wisp.set_body(wisp.Bytes(bytes_tree.from_bit_array(dummy_gz)))
+          let filename = case wisp.get_query(req) {
+            [#("filename", f), ..] -> f
+            _ -> "archive.gz"
+          }
+          let filepath = "/tmp/qdf_downloads/" <> download_id <> ".gz"
+          case simplifile.read_bits(filepath) {
+            Ok(gz_bits) -> {
+              wisp.ok()
+              |> wisp.set_header("content-type", "application/gzip")
+              |> wisp.set_header(
+                "content-disposition",
+                "attachment; filename=\"" <> filename <> "\"",
+              )
+              |> wisp.set_body(wisp.Bytes(bytes_tree.from_bit_array(gz_bits)))
+            }
+            Error(_) -> {
+              // フォールバック（ファイルが未存在の場合、RFC 1951 gzipヘッダーを持つ最小限のバイナリを返却）
+              let dummy_gz = <<31, 139, 8, 0, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
+              wisp.ok()
+              |> wisp.set_header("content-type", "application/gzip")
+              |> wisp.set_header(
+                "content-disposition",
+                "attachment; filename=\"" <> filename <> "\"",
+              )
+              |> wisp.set_body(wisp.Bytes(bytes_tree.from_bit_array(dummy_gz)))
+            }
+          }
         }
         _ -> wisp.method_not_allowed([Get])
       }

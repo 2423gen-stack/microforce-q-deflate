@@ -402,24 +402,37 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
 
     <!-- ドラッグ＆ドロップ アップロードボックス -->
     <div id=\"upload-dropzone\"
-         class=\"border-2 border-dashed border-slate-300 hover:border-brand-500 bg-white rounded-2xl p-10 text-center transition-all cursor-pointer shadow-xs group\"
-         onclick=\"document.getElementById('compress-file-input').click()\">
+         class=\"border-2 border-dashed border-slate-300 hover:border-brand-500 bg-white rounded-2xl p-10 text-center transition-all cursor-pointer shadow-xs group\">
       <input type=\"file\" id=\"compress-file-input\" class=\"hidden\" onchange=\"handleFileSelect(this.files)\" />
+      <input type=\"file\" id=\"compress-folder-input\" class=\"hidden\" webkitdirectory directory multiple onchange=\"handleFolderSelect(this.files)\" />
 
       <div id=\"dropzone-prompt\" class=\"space-y-4\">
         <div class=\"w-14 h-14 mx-auto rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform shadow-xs\">
           📦
         </div>
         <div>
-          <h2 class=\"text-base font-bold text-slate-800\">Drop your file here, or <span class=\"text-brand-600 underline\">browse</span></h2>
-          <p class=\"text-xs text-slate-400 mt-1 font-mono\">JSON, Logs, CSV, Bundle JS, SQL, or arbitrary binary</p>
+          <h2 class=\"text-base font-bold text-slate-800\">Drop file or folder here</h2>
+          <p class=\"text-xs text-slate-400 mt-1 font-mono\">JSON, Logs, CSV, Bundle JS, SQL, or whole directories</p>
+        </div>
+        <div class=\"flex items-center justify-center space-x-3 pt-2\">
+          <button type=\"button\" onclick=\"event.stopPropagation(); document.getElementById('compress-file-input').click()\"
+                  class=\"px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5\">
+            <span>📄</span>
+            <span>Browse File</span>
+          </button>
+          <span class=\"text-xs text-slate-300\">or</span>
+          <button type=\"button\" onclick=\"event.stopPropagation(); triggerFolderPicker(event)\"
+                  class=\"px-3.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold rounded-lg transition-colors flex items-center space-x-1.5 border border-brand-200\">
+            <span>📁</span>
+            <span>Browse Folder</span>
+          </button>
         </div>
       </div>
 
-      <!-- ファイル選択時の情報表示 -->
+      <!-- ファイル/フォルダ選択時の情報表示 -->
       <div id=\"dropzone-file-info\" class=\"hidden space-y-4\">
         <div class=\"inline-flex items-center space-x-3 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs\">
-          <span class=\"text-lg\">📄</span>
+          <span id=\"selected-fileicon\" class=\"text-lg\">📄</span>
           <span id=\"selected-filename\" class=\"font-bold text-slate-800\">data.json</span>
           <span id=\"selected-filesize\" class=\"text-slate-500 font-semibold\">(1.24 MB)</span>
         </div>
@@ -434,7 +447,7 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
       <!-- 処理中スピナー -->
       <div id=\"dropzone-spinner\" class=\"hidden py-6 space-y-3\">
         <div class=\"w-8 h-8 mx-auto border-3 border-brand-500 border-t-transparent rounded-full animate-spin\"></div>
-        <p class=\"text-xs font-mono text-slate-600 font-semibold\">Processing with multidimensional solver...</p>
+        <p id=\"spinner-status-text\" class=\"text-xs font-mono text-slate-600 font-semibold\">Processing with multidimensional solver...</p>
       </div>
     </div>
 
@@ -443,10 +456,85 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
   </div>
 
   <script>
-    let selectedFile = null;
+    let selectedPayload = null; // { name: string, isFolder: boolean, getBlob: () => Promise<Blob> }
+
+    // POSIX UStar TAR ビルダー (依存ゼロ・ブラウザ内完結)
+    class SimpleTarBuilder {
+      constructor() {
+        this.records = [];
+      }
+
+      addFile(path, uint8Array, modTime = Math.floor(Date.now() / 1000)) {
+        this.records.push({ path, data: uint8Array, mtime: modTime });
+      }
+
+      build() {
+        const textEncoder = new TextEncoder();
+        const blockParts = [];
+
+        for (const rec of this.records) {
+          const header = new Uint8Array(512);
+          const nameBytes = textEncoder.encode(rec.path);
+          header.set(nameBytes.subarray(0, 100), 0);
+
+          const padNull = String.fromCharCode(0);
+          // mode (0644 octal)
+          header.set(textEncoder.encode('0000644' + padNull), 100);
+          // uid / gid
+          header.set(textEncoder.encode('0000000' + padNull), 108);
+          header.set(textEncoder.encode('0000000' + padNull), 116);
+
+          // size in octal (11 chars + null)
+          const sizeStr = rec.data.length.toString(8).padStart(11, '0') + padNull;
+          header.set(textEncoder.encode(sizeStr), 124);
+
+          // mtime in octal (11 chars + null)
+          const mtimeStr = rec.mtime.toString(8).padStart(11, '0') + padNull;
+          header.set(textEncoder.encode(mtimeStr), 136);
+
+          // chksum placeholder (8 spaces)
+          header.set(textEncoder.encode('        '), 148);
+          // typeflag '0' (regular file)
+          header[156] = 48; // '0'
+
+          // magic 'ustar' + null + version '00'
+          header.set(textEncoder.encode('ustar' + padNull + '00'), 257);
+
+          // calculate checksum
+          let checksum = 0;
+          for (let i = 0; i < 512; i++) {
+            checksum += header[i];
+          }
+          const chkStr = checksum.toString(8).padStart(6, '0') + padNull + ' ';
+          header.set(textEncoder.encode(chkStr), 148);
+
+          blockParts.push(header);
+          blockParts.push(rec.data);
+
+          // pad data to 512-byte block
+          const remainder = rec.data.length % 512;
+          if (remainder !== 0) {
+            const padSize = 512 - remainder;
+            blockParts.push(new Uint8Array(padSize));
+          }
+        }
+
+        // 2 end-of-archive 512-byte zero blocks
+        blockParts.push(new Uint8Array(1024));
+
+        return new Blob(blockParts, { type: 'application/x-tar' });
+      }
+    }
 
     const dropzone = document.getElementById('upload-dropzone');
     if (dropzone) {
+      dropzone.addEventListener('click', (e) => {
+        // 子ボタンが押された場合以外はファイル選択を開く
+        if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+          document.getElementById('compress-file-input').click();
+        }
+      });
+
       ['dragenter', 'dragover'].forEach(eventName => {
         dropzone.addEventListener(eventName, (e) => {
           e.preventDefault();
@@ -463,8 +551,20 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
         }, false);
       });
 
-      dropzone.addEventListener('drop', (e) => {
+      dropzone.addEventListener('drop', async (e) => {
         const dt = e.dataTransfer;
+        if (!dt) return;
+
+        // Chrome / Safari / Edge: webkitGetAsEntry でフォルダ再帰探索
+        if (dt.items && dt.items.length > 0) {
+          const item = dt.items[0];
+          const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+          if (entry && entry.isDirectory) {
+            await handleDirectoryEntry(entry);
+            return;
+          }
+        }
+
         const files = dt.files;
         if (files && files.length > 0) {
           handleFileSelect(files);
@@ -472,40 +572,209 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
       }, false);
     }
 
-    function handleFileSelect(files) {
-      if (!files || files.length === 0) return;
-      selectedFile = files[0];
-      document.getElementById('dropzone-prompt').classList.add('hidden');
-      document.getElementById('dropzone-file-info').classList.remove('hidden');
-      document.getElementById('selected-filename').textContent = selectedFile.name;
-      document.getElementById('selected-filesize').textContent = '(' + (selectedFile.size / 1024).toFixed(1) + ' KB)';
+    // File System Access API を使ったフォルダ選択
+    // Linux の webkitdirectory 問題（GTKピッカーでフォルダが選択できない）を回避
+    async function triggerFolderPicker(event) {
+      event.stopPropagation();
+      if (window.showDirectoryPicker) {
+        try {
+          const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+          await handleDirectoryHandle(dirHandle);
+        } catch(e) {
+          // ユーザーがキャンセルした場合は何もしない
+          if (e.name !== 'AbortError') console.error('フォルダ選択エラー:', e);
+        }
+      } else {
+        // フォールバック（File System Access API 非対応ブラウザ）
+        const fi = document.getElementById('compress-folder-input');
+        fi.value = '';
+        fi.click();
+      }
     }
 
-    function startCompression(e) {
+    // FileSystemDirectoryHandle を再帰スキャン（File System Access API）
+    async function handleDirectoryHandle(dirHandle) {
+      document.getElementById('dropzone-prompt').classList.add('hidden');
+      document.getElementById('dropzone-spinner').classList.remove('hidden');
+      document.getElementById('spinner-status-text').textContent = 'Scanning directory files...';
+
+      const fileEntries = [];
+      async function scanHandle(handle, path) {
+        if (handle.kind === 'file') {
+          const file = await handle.getFile();
+          fileEntries.push({ path: path, file: file });
+        } else if (handle.kind === 'directory') {
+          for await (const [name, child] of handle.entries()) {
+            await scanHandle(child, path ? path + '/' + name : name);
+          }
+        }
+      }
+
+      await scanHandle(dirHandle, dirHandle.name);
+      let totalSize = 0;
+      fileEntries.forEach(f => totalSize += f.file.size);
+
+      selectedPayload = {
+        name: dirHandle.name + '.tar',
+        displayName: dirHandle.name + '/',
+        isFolder: true,
+        count: fileEntries.length,
+        totalSize: totalSize,
+        getBlob: async () => {
+          const tar = new SimpleTarBuilder();
+          for (const item of fileEntries) {
+            const buf = await item.file.arrayBuffer();
+            tar.addFile(item.path, new Uint8Array(buf), Math.floor(item.file.lastModified / 1000));
+          }
+          return tar.build();
+        }
+      };
+
+      document.getElementById('dropzone-spinner').classList.add('hidden');
+      document.getElementById('dropzone-file-info').classList.remove('hidden');
+      document.getElementById('selected-fileicon').textContent = '📁';
+      document.getElementById('selected-filename').textContent = selectedPayload.displayName;
+      document.getElementById('selected-filesize').textContent = '(' + fileEntries.length + ' files, ' + (totalSize / 1024).toFixed(1) + ' KB)';
+    }
+
+    async function handleDirectoryEntry(dirEntry) {
+      document.getElementById('dropzone-prompt').classList.add('hidden');
+      document.getElementById('dropzone-spinner').classList.remove('hidden');
+      document.getElementById('spinner-status-text').textContent = 'Scanning directory files...';
+
+      const fileEntries = [];
+      async function scanDir(entry, path = '') {
+        const fullPath = path ? path + '/' + entry.name : entry.name;
+        if (entry.isFile) {
+          const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+          fileEntries.push({ path: fullPath, file });
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const entries = await new Promise((resolve, reject) => {
+            const results = [];
+            function readBatch() {
+              reader.readEntries((batch) => {
+                if (!batch || batch.length === 0) {
+                  resolve(results);
+                } else {
+                  results.push(...batch);
+                  readBatch();
+                }
+              }, reject);
+            }
+            readBatch();
+          });
+          for (const sub of entries) {
+            await scanDir(sub, fullPath);
+          }
+        }
+      }
+
+      await scanDir(dirEntry);
+
+      let totalSize = 0;
+      fileEntries.forEach(f => totalSize += f.file.size);
+
+      selectedPayload = {
+        name: dirEntry.name + '.tar',
+        displayName: dirEntry.name + '/',
+        isFolder: true,
+        count: fileEntries.length,
+        totalSize: totalSize,
+        getBlob: async () => {
+          const tar = new SimpleTarBuilder();
+          for (const item of fileEntries) {
+            const buf = await item.file.arrayBuffer();
+            tar.addFile(item.path, new Uint8Array(buf), Math.floor(item.file.lastModified / 1000));
+          }
+          return tar.build();
+        }
+      };
+
+      document.getElementById('dropzone-spinner').classList.add('hidden');
+      document.getElementById('dropzone-file-info').classList.remove('hidden');
+      document.getElementById('selected-fileicon').textContent = '📁';
+      document.getElementById('selected-filename').textContent = selectedPayload.displayName;
+      document.getElementById('selected-filesize').textContent = '(' + selectedPayload.count + ' files, ' + (totalSize / 1024).toFixed(1) + ' KB)';
+    }
+
+    function handleFolderSelect(files) {
+      if (!files || files.length === 0) return;
+      const fileList = Array.from(files);
+      let totalSize = 0;
+      fileList.forEach(f => totalSize += f.size);
+
+      // 相対パスからルートフォルダ名を抽出 (例: dist/index.html -> dist)
+      const firstPath = fileList[0].webkitRelativePath || fileList[0].name;
+      const folderName = firstPath.split('/')[0] || 'archive';
+
+      selectedPayload = {
+        name: folderName + '.tar',
+        displayName: folderName + '/',
+        isFolder: true,
+        count: fileList.length,
+        totalSize: totalSize,
+        getBlob: async () => {
+          const tar = new SimpleTarBuilder();
+          for (const file of fileList) {
+            const relPath = file.webkitRelativePath || file.name;
+            const buf = await file.arrayBuffer();
+            tar.addFile(relPath, new Uint8Array(buf), Math.floor(file.lastModified / 1000));
+          }
+          return tar.build();
+        }
+      };
+
+      document.getElementById('dropzone-prompt').classList.add('hidden');
+      document.getElementById('dropzone-file-info').classList.remove('hidden');
+      document.getElementById('selected-fileicon').textContent = '📁';
+      document.getElementById('selected-filename').textContent = selectedPayload.displayName;
+      document.getElementById('selected-filesize').textContent = '(' + selectedPayload.count + ' files, ' + (totalSize / 1024).toFixed(1) + ' KB)';
+    }
+
+    function handleFileSelect(files) {
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      selectedPayload = {
+        name: file.name,
+        displayName: file.name,
+        isFolder: false,
+        totalSize: file.size,
+        getBlob: async () => file
+      };
+      document.getElementById('dropzone-prompt').classList.add('hidden');
+      document.getElementById('dropzone-file-info').classList.remove('hidden');
+      document.getElementById('selected-fileicon').textContent = '📄';
+      document.getElementById('selected-filename').textContent = file.name;
+      document.getElementById('selected-filesize').textContent = '(' + (file.size / 1024).toFixed(1) + ' KB)';
+    }
+
+    async function startCompression(e) {
       e.stopPropagation();
-      if (!selectedFile) return;
+      if (!selectedPayload) return;
 
       document.getElementById('dropzone-file-info').classList.add('hidden');
       document.getElementById('dropzone-spinner').classList.remove('hidden');
+      document.getElementById('spinner-status-text').textContent = selectedPayload.isFolder ? 'Creating in-memory TAR archive & optimizing...' : 'Processing with multidimensional solver...';
 
-      const url = '/dashboard/api/compress?filename=' + encodeURIComponent(selectedFile.name);
-      fetch(url, {
-        method: 'POST',
-        body: selectedFile,
-        headers: { 'Content-Type': 'application/octet-stream' }
-      })
-      .then(res => res.text())
-      .then(html => {
+      try {
+        const blob = await selectedPayload.getBlob();
+        const url = '/dashboard/api/compress?filename=' + encodeURIComponent(selectedPayload.name);
+        const res = await fetch(url, {
+          method: 'POST',
+          body: blob,
+          headers: { 'Content-Type': 'application/octet-stream' }
+        });
+        const html = await res.text();
         document.getElementById('dropzone-spinner').classList.add('hidden');
         document.getElementById('dropzone-prompt').classList.remove('hidden');
         document.getElementById('compress-result-container').innerHTML = html;
-        selectedFile = null;
-      })
-      .catch(err => {
+        selectedPayload = null;
+      } catch (err) {
         alert('Compression failed: ' + err);
         document.getElementById('dropzone-spinner').classList.add('hidden');
         document.getElementById('dropzone-prompt').classList.remove('hidden');
-      });
+      }
     }
 
     function resetStudio() {
@@ -513,7 +782,7 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
       document.getElementById('dropzone-prompt').classList.remove('hidden');
       document.getElementById('dropzone-file-info').classList.add('hidden');
       document.getElementById('dropzone-spinner').classList.add('hidden');
-      selectedFile = null;
+      selectedPayload = null;
     }
   </script>
   "
