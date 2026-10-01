@@ -17,6 +17,8 @@ RUN if [ -f gleam.toml ]; then gleam deps download; fi
 
 COPY . .
 
+RUN make clean && make
+
 EXPOSE 8080
 
 CMD ["gleam", "run"]

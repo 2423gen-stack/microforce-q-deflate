@@ -2,6 +2,53 @@
 -export([gzip_compress/1, generate_random_key/0, create_stripe_checkout/7, create_stripe_checkout/8, get_env/1]).
 
 gzip_compress(Binary) ->
+    case find_port_executable() of
+        {ok, ExePath} ->
+            try_port_compress(ExePath, Binary);
+        error ->
+            fallback_zlib_compress(Binary)
+    end.
+
+find_port_executable() ->
+    Candidates = [
+        "priv/qdeflate_port",
+        "/app/priv/qdeflate_port",
+        case code:priv_dir(qdeflate_web) of
+            PrivDir when is_list(PrivDir) -> PrivDir ++ "/qdeflate_port";
+            _ -> ""
+        end,
+        case code:priv_dir(bbs) of
+            PrivDir2 when is_list(PrivDir2) -> PrivDir2 ++ "/qdeflate_port";
+            _ -> ""
+        end
+    ],
+    check_candidates(Candidates).
+
+check_candidates([]) -> error;
+check_candidates([Path | Rest]) ->
+    case filelib:is_regular(Path) of
+        true -> {ok, Path};
+        false -> check_candidates(Rest)
+    end.
+
+try_port_compress(ExePath, Binary) ->
+    try
+        Port = open_port({spawn_executable, ExePath}, [{packet, 4}, binary, use_stdio]),
+        Port ! {self(), {command, Binary}},
+        receive
+            {Port, {data, CompressedGz}} ->
+                port_close(Port),
+                {ok, CompressedGz}
+        after 15000 ->
+            catch port_close(Port),
+            fallback_zlib_compress(Binary)
+        end
+    catch
+        _:_ ->
+            fallback_zlib_compress(Binary)
+    end.
+
+fallback_zlib_compress(Binary) ->
     try
         Gz = zlib:gzip(Binary),
         {ok, Gz}

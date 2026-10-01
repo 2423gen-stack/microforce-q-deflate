@@ -910,7 +910,7 @@ pub fn handle_request(req: Request, _ctx: Context) -> Response {
                   )
                 }
                 uid, pw -> {
-                  let new_key = "qdf_live_" <> generate_random_key()
+                  let new_key = generate_random_key()
                   case auth_client.create_user(socket_path, uid, pw, new_key, 1000.0) {
                     Ok(u) -> {
                       wisp.log_info("[AUTH_UDS] New user registered via Web: user=" <> u.user_id <> " (credited 1,000 MB)")
