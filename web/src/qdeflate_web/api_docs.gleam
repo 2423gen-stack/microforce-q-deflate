@@ -33,6 +33,7 @@ pub fn get_api_spec_json() -> String {
             json.object([
               #("http_max_body_bytes", json.int(104857600)),
               #("http_max_body_mb", json.string("100 MB")),
+              #("recommended_ci_cd", json.string("Use official GitHub Action '2423gen-stack/microforce-q-deflate@main' for automated build compression (3 lines of YAML, zero server setup, $0 GitHub fees).")),
               #("large_files_guidance", json.string("For files > 100 MB up to GB/TB scale, execute via local qdeflate CLI pipeline to avoid HTTP transfer latencies. Decompression remains 100% RFC 1951 compliant gunzip/tar everywhere.")),
             ]),
           ),

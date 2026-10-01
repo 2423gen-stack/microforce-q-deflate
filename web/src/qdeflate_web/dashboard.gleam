@@ -413,10 +413,10 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
         <div>
           <h2 class=\"text-base font-bold text-slate-800\">Drop file or folder here</h2>
           <p class=\"text-xs text-slate-400 mt-1 font-mono\">JSON, Logs, CSV, Bundle JS, SQL, or whole directories</p>
-          <div class=\"mt-2 inline-flex items-center space-x-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg text-[11px] font-mono text-amber-800\">
-            <span class=\"font-bold\">⚡ Web Upload Limit: Max 100 MB per file</span>
+          <div class=\"mt-2 inline-flex items-center space-x-2 px-3 py-1 bg-brand-50 border border-brand-200 rounded-lg text-[11px] font-mono text-brand-900\">
+            <span class=\"font-bold\">⚡ Web Upload Limit: Max 100 MB</span>
             <span class=\"text-slate-300\">|</span>
-            <span class=\"text-amber-700\">For GB+ files & DB dumps, use local <code>qdeflate</code> CLI (Docs tab)</span>
+            <span class=\"text-brand-700\">Automate builds via <strong>GitHub Actions</strong> (Zero server setup, Docs tab)</span>
           </div>
         </div>
         <div class=\"flex items-center justify-center space-x-3 pt-2\">
@@ -765,7 +765,7 @@ fn render_compress_tab(user: AuthUserDetail) -> String {
       try {
         const blob = await selectedPayload.getBlob();
         if (blob.size > 100 * 1024 * 1024) {
-          alert('【Web Upload Limit: 100MB】\n選択されたファイル/フォルダ（' + (blob.size / (1024 * 1024)).toFixed(1) + ' MB）はWebアップロード上限（100MB）を超えています。\n\n100MB〜GB/TB級のファイルや社内機密DBは、Docsタブで案内しているローカル用「qdeflate」CLIをご利用ください（外部通信不要・ローカル完結・容量無制限）。');
+          alert('【Web Upload Limit: 100MB】\n選択されたファイル/フォルダ（' + (blob.size / (1024 * 1024)).toFixed(1) + ' MB）はWebアップロード上限（100MB）を超えています。\n\n・Web配信アセットの自動最適化：Docsタブ記載の「GitHub Actions（サーバー不要・コピペ3行）」をご利用ください。\n・GB/TB級の社内機密DB・ログ圧縮：ローカル完結の「qdeflate CLI」をご利用ください（外部通信ゼロ・容量無制限）。');
           document.getElementById('dropzone-spinner').classList.add('hidden');
           document.getElementById('dropzone-prompt').classList.remove('hidden');
           return;
@@ -1354,33 +1354,79 @@ if (res.ok) {
       </div>
     </div>
 
-    <!-- GitHub Actions (CI/CD Automated Asset Compression) -->
-    <div class=\"bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-3\">
-      <div class=\"flex items-center justify-between\">
-        <h2 class=\"text-base font-bold text-slate-900 flex items-center space-x-2\">
-          <span class=\"text-slate-800 font-mono\">🚀</span>
-          <span>GitHub Actions (Asset Optimization Workflow)</span>
-        </h2>
-        <button id=\"btn-copy-gh-actions\" onclick=\"copyToClipboard(document.getElementById('code-gh-actions').innerText, 'btn-copy-gh-actions')\" class=\"text-xs font-semibold px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 transition-colors\">Copy Code</button>
+    <!-- ========================================================================= -->
+    <!-- 🚀 GitHub Actions: Zero Server Setup Automated Pipeline (Recommended) -->
+    <!-- ========================================================================= -->
+    <div class=\"bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 text-white rounded-2xl p-6 sm:p-7 border border-brand-500/30 shadow-lg space-y-5\">
+      <div class=\"flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800\">
+        <div class=\"flex items-center space-x-3\">
+          <div class=\"w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center text-xl border border-brand-500/30\">
+            🚀
+          </div>
+          <div>
+            <div class=\"flex items-center space-x-2\">
+              <h2 class=\"text-base font-bold text-white\">GitHub Actions: Official Zero-Server CI/CD</h2>
+              <span class=\"px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-wider border border-emerald-500/30\">Recommended</span>
+            </div>
+            <p class=\"text-xs text-slate-400 mt-0.5 font-sans\">
+              No server installation, zero maintenance. Copy 3 lines of YAML and slash 20-30% AWS/CloudFront egress costs on every git push.
+            </p>
+          </div>
+        </div>
+        <button id=\"btn-copy-gh-actions\" onclick=\"copyToClipboard(document.getElementById('code-gh-actions').innerText, 'btn-copy-gh-actions')\" class=\"text-xs font-semibold px-3 py-1.5 bg-brand-600 hover:bg-brand-500 rounded-lg text-white transition-colors shadow-xs\">Copy YAML</button>
       </div>
-      <div class=\"bg-slate-900 rounded-lg p-4 font-mono text-xs text-slate-200 overflow-x-auto border border-slate-800\">
-        <pre id=\"code-gh-actions\"><code># .github/workflows/deploy.yml
-- name: Compress static assets with Q-Deflate
-  run: |
-    # Pre-compress JS/CSS bundles to slash 20-30% AWS Egress transfer costs
-    for file in dist/assets/*.{js,css,json}; do
-      [ -f \"$file\" ] || continue
-      echo \"Compressing $file with Q-Deflate ...\"
-      curl -s -X POST https://microforce.dev/api/v1/compress \\
-        -H \"Authorization: Bearer ${{ secrets.QDEFLATE_API_KEY }}\" \\
-        --data-binary @\"$file\" -o \"$file.gz\"
-    done
-  env:
-    QDEFLATE_API_KEY: ${{ secrets.QDEFLATE_API_KEY }}</code></pre>
+
+      <!-- メリット解説グリッド -->
+      <div class=\"grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs\">
+        <div class=\"p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1\">
+          <div class=\"font-bold text-slate-200 flex items-center space-x-1.5\">
+            <span class=\"text-emerald-400\">✓</span>
+            <span>Zero Server Setup</span>
+          </div>
+          <p class=\"text-[11px] text-slate-400 leading-relaxed font-sans\">
+            Never touch production servers or write complex Dockerfiles. Executes inside GitHub-hosted runner during build.
+          </p>
+        </div>
+        <div class=\"p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1\">
+          <div class=\"font-bold text-slate-200 flex items-center space-x-1.5\">
+            <span class=\"text-emerald-400\">✓</span>
+            <span>$0 GitHub Fee</span>
+          </div>
+          <p class=\"text-[11px] text-slate-400 leading-relaxed font-sans\">
+            Runs in seconds. Free for Public repos, and comfortably within the 2,000 free monthly minutes for Private repos.
+          </p>
+        </div>
+        <div class=\"p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1\">
+          <div class=\"font-bold text-slate-200 flex items-center space-x-1.5\">
+            <span class=\"text-emerald-400\">✓</span>
+            <span>Zero Client Software</span>
+          </div>
+          <p class=\"text-[11px] text-slate-400 leading-relaxed font-sans\">
+            100% RFC 1951 compliant gzip output. Browsers, CDNs, and customers decompress natively with zero friction.
+          </p>
+        </div>
       </div>
-      <p class=\"text-[11px] text-slate-500 font-sans\">
-        Store your token in repo secrets: <code>Settings &gt; Secrets and variables &gt; Actions &gt; QDEFLATE_API_KEY</code>.
-      </p>
+
+      <!-- スニペットブロック -->
+      <div class=\"space-y-2\">
+        <div class=\"flex items-center justify-between text-xs text-slate-400 font-mono\">
+          <span>Add this step to your <code>.github/workflows/deploy.yml</code>:</span>
+          <span>Target: <code>dist/assets</code></span>
+        </div>
+        <div class=\"bg-slate-950 rounded-xl p-4 font-mono text-xs text-slate-200 overflow-x-auto border border-slate-800\">
+          <pre id=\"code-gh-actions\"><code># 1. Official Q-Deflate GitHub Action (Paste into your workflow)
+- name: Hyper-Compress Assets with Q-Deflate
+  uses: 2423gen-stack/microforce-q-deflate@main
+  with:
+    path: 'dist'                           # Directory to compress
+    extensions: 'js css json svg html'     # Target static asset types
+    token: ${{ secrets.QDEFLATE_API_KEY }} # Stored in Repo Secrets</code></pre>
+        </div>
+        <p class=\"text-[11px] text-slate-400 font-sans\">
+          1. Store your secret key: <code>GitHub Repo &gt; Settings &gt; Secrets and variables &gt; Actions &gt; New repository secret</code> with name <code>QDEFLATE_API_KEY</code>.<br>
+          2. That's it! Every deployment automatically generates optimal <code>.gz</code> archives before S3/Cloudflare sync.
+        </p>
+      </div>
     </div>
 
     <!-- ========================================================================= -->
@@ -1618,7 +1664,9 @@ if (res.ok) {
       <div class=\"divide-y divide-slate-100 text-xs space-y-3 pt-1\">
         <div class=\"pt-3 space-y-1\">
           <p class=\"font-bold text-slate-900\">Q. What is the maximum file size for compression?</p>
-          <p class=\"text-slate-600 leading-relaxed\">A. The Web Compress Studio and public HTTP REST API support up to <strong>100 MB per file</strong> (optimized for web bundles, JSON, and deployment archives). For files exceeding 100 MB up to gigabytes/terabytes (e.g. database dumps, big data logs), use our native <code>qdeflate</code> CLI on your server to compress directly with zero network transfer latency. Decompressed files remain 100% standard gzip everywhere.</p>
+          <p class=\"text-slate-600 leading-relaxed\">A. The Web Compress Studio and public HTTP REST API support up to <strong>100 MB per file</strong> (optimized for web bundles, JS/CSS, and release archives).<br>
+          • <strong>Web Assets & CI/CD:</strong> We strongly recommend our official <strong>GitHub Actions</strong> integration (Docs tab). With just 3 lines of YAML, your web assets are automatically compressed on every git push with zero server setup and $0 additional GitHub fees.<br>
+          • <strong>Gigabyte-scale DB Dumps & Heavy Logs:</strong> Use the local <code>qdeflate</code> CLI directly on your server to eliminate heavy network transfer times. All decompressed outputs remain 100% RFC 1951 gzip compatible everywhere.</p>
         </div>
         <div class=\"pt-3 space-y-1\">
           <p class=\"font-bold text-slate-900\">Q. Do I need specialized software to decompress Q-Deflate files?</p>

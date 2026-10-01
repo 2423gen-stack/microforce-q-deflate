@@ -1,0 +1,99 @@
+name: 'Q-Deflate Asset Compressor'
+description: 'Hyper-density RFC 1951 gzip compression for web assets. Slashes 20-30% AWS Egress costs with zero server setup.'
+author: 'Microforce Project (Gen Nishizumi)'
+branding:
+  icon: 'archive'
+  color: 'blue'
+
+inputs:
+  token:
+    description: 'Q-Deflate API Secret Key (qdf_live_...)'
+    required: true
+  path:
+    description: 'Path or glob pattern of assets to compress (e.g. dist/assets)'
+    required: true
+    default: 'dist'
+  extensions:
+    description: 'File extensions to compress (space-separated, e.g. "js css json svg html")'
+    required: false
+    default: 'js css json svg html txt'
+  endpoint:
+    description: 'Q-Deflate API endpoint'
+    required: false
+    default: 'https://microforce.dev/api/v1/compress'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Compress assets with Q-Deflate
+      shell: bash
+      env:
+        QDF_TOKEN: ${{ inputs.token }}
+        QDF_PATH: ${{ inputs.path }}
+        QDF_EXTS: ${{ inputs.extensions }}
+        QDF_ENDPOINT: ${{ inputs.endpoint }}
+      run: |
+        echo "=========================================================="
+        echo "⚡ Q-Deflate GitHub Action: Optimizing Web Assets"
+        echo "=========================================================="
+        
+        if [ -z "$QDF_TOKEN" ]; then
+          echo "::error::Missing Q-Deflate API token! Store it in Settings > Secrets > Actions > QDEFLATE_API_KEY"
+          exit 1
+        fi
+
+        if [ ! -d "$QDF_PATH" ] && [ ! -f "$QDF_PATH" ]; then
+          echo "::error::Target path '$QDF_PATH' not found!"
+          exit 1
+        fi
+
+        # 拡張子正規表現パターンの作成
+        EXT_REGEX=$(echo "$QDF_EXTS" | sed 's/ /\\|/g')
+        
+        echo "Target directory : $QDF_PATH"
+        echo "Target extensions: $QDF_EXTS"
+        echo "Endpoint         : $QDF_ENDPOINT"
+        echo ""
+
+        TOTAL_ORIG=0
+        TOTAL_COMP=0
+        COUNT=0
+
+        # 対象ファイル探索
+        find "$QDF_PATH" -type f \( $(echo "$QDF_EXTS" | awk '{for(i=1;i<=NF;i++) printf "-name \"*."$i"\" " (i<NF?"-o ":"")}') \) | while read -r file; do
+          [ -f "$file" ] || continue
+          
+          ORIG_SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+          # 100MB超過チェック
+          if [ "$ORIG_SIZE" -gt 104857600 ]; then
+            echo "::warning::Skipping '$file' ($ORIG_SIZE bytes) - exceeds 100 MB single-request limit."
+            continue
+          fi
+
+          OUT_FILE="${file}.gz"
+          
+          # APIリクエスト (HTTPステータスとヘッダーを追跡)
+          HTTP_CODE=$(curl -s -w "%{http_code}" -X POST "$QDF_ENDPOINT" \
+            -H "Authorization: Bearer $QDF_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$file" \
+            -o "$OUT_FILE")
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            COMP_SIZE=$(stat -c%s "$OUT_FILE" 2>/dev/null || stat -f%z "$OUT_FILE")
+            SAVED_BYTES=$((ORIG_SIZE - COMP_SIZE))
+            if [ "$ORIG_SIZE" -gt 0 ]; then
+              SAVED_PCT=$((SAVED_BYTES * 100 / ORIG_SIZE))
+            else
+              SAVED_PCT=0
+            fi
+            echo "✓ $file ($ORIG_SIZE B -> $COMP_SIZE B, -$SAVED_PCT%)"
+          else
+            echo "::warning::Failed to compress '$file' (HTTP $HTTP_CODE). Keeping raw uncompressed asset."
+            rm -f "$OUT_FILE"
+          fi
+        done
+
+        echo ""
+        echo "⚡ All eligible assets optimized with RFC 1951 global minimums!"
+        echo "   Zero specialized client tools needed for decompression."
