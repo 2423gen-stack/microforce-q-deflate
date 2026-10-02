@@ -7,8 +7,14 @@
 
 import auth/uds
 import gleam/dict.{type Dict}
+import gleam/dynamic/decode
 import gleam/erlang/process.{type Subject}
+import gleam/json
+import gleam/list
 import gleam/otp/actor
+import simplifile
+
+pub const default_db_path = "/app/data/users.json"
 
 pub type User {
   User(
@@ -25,6 +31,7 @@ pub type Database {
   Database(
     by_api_key: Dict(String, User),
     by_user_id: Dict(String, User),
+    db_path: String,
   )
 }
 
@@ -32,14 +39,80 @@ pub fn new() -> Database {
   Database(
     by_api_key: dict.new(),
     by_user_id: dict.new(),
+    db_path: default_db_path,
   )
+}
+
+pub fn new_with_path(db_path: String) -> Database {
+  Database(
+    by_api_key: dict.new(),
+    by_user_id: dict.new(),
+    db_path: db_path,
+  )
+}
+
+fn user_to_json(user: User) -> json.Json {
+  json.object([
+    #("user_id", json.string(user.user_id)),
+    #("password_hash", json.string(user.password_hash)),
+    #("api_key", json.string(user.api_key)),
+    #("balance", json.float(user.balance)),
+    #("quota_bytes", json.int(user.quota_bytes)),
+  ])
+}
+
+fn user_decoder() -> decode.Decoder(User) {
+  use user_id <- decode.field("user_id", decode.string)
+  use password_hash <- decode.field("password_hash", decode.string)
+  use api_key <- decode.field("api_key", decode.string)
+  use balance <- decode.field("balance", decode.float)
+  use quota_bytes <- decode.field("quota_bytes", decode.int)
+  decode.success(User(
+    user_id: user_id,
+    password_hash: password_hash,
+    api_key: api_key,
+    balance: balance,
+    quota_bytes: quota_bytes,
+    metadata: dict.new(),
+  ))
+}
+
+/// ディスクへの即時永続化（Write-Through）
+pub fn save_to_disk(db: Database) -> Nil {
+  let users = dict.values(db.by_user_id)
+  let payload = json.to_string(json.array(users, user_to_json))
+  let _ = simplifile.write(to: db.db_path, contents: payload)
+  Nil
+}
+
+/// ディスクからの復元（Restore）
+pub fn load_from_disk(db_path: String) -> Database {
+  let initial = new_with_path(db_path)
+  case simplifile.read(from: db_path) {
+    Ok(contents) -> {
+      let list_decoder = decode.list(user_decoder())
+      case json.parse(contents, list_decoder) {
+        Ok(users) -> {
+          list.fold(users, initial, fn(acc, u) {
+            let by_api_key = dict.insert(acc.by_api_key, u.api_key, u)
+            let by_user_id = dict.insert(acc.by_user_id, u.user_id, u)
+            Database(by_api_key: by_api_key, by_user_id: by_user_id, db_path: db_path)
+          })
+        }
+        Error(_) -> initial
+      }
+    }
+    Error(_) -> initial
+  }
 }
 
 /// ユーザーの登録（自己申告型）
 pub fn insert_user(db: Database, user: User) -> Result(Database, String) {
   let by_api_key = dict.insert(db.by_api_key, user.api_key, user)
   let by_user_id = dict.insert(db.by_user_id, user.user_id, user)
-  Ok(Database(by_api_key:, by_user_id:))
+  let updated_db = Database(by_api_key:, by_user_id:, db_path: db.db_path)
+  save_to_disk(updated_db)
+  Ok(updated_db)
 }
 
 /// APIキーによるO(1)直引き照会
@@ -109,7 +182,9 @@ pub fn regenerate_key(
         |> dict.delete(old_key)
         |> dict.insert(new_key, updated)
       let by_user_id = dict.insert(db.by_user_id, user_id, updated)
-      Ok(#(updated, Database(by_api_key:, by_user_id:)))
+      let updated_db = Database(by_api_key:, by_user_id:, db_path: db.db_path)
+      save_to_disk(updated_db)
+      Ok(#(updated, updated_db))
     }
     Error(err) -> Error(err)
   }
@@ -140,7 +215,9 @@ pub fn update_password(
       let updated = User(..user, password_hash: new_password_hash)
       let by_api_key = dict.insert(db.by_api_key, user.api_key, updated)
       let by_user_id = dict.insert(db.by_user_id, user_id, updated)
-      Ok(#(updated, Database(by_api_key:, by_user_id:)))
+      let updated_db = Database(by_api_key:, by_user_id:, db_path: db.db_path)
+      save_to_disk(updated_db)
+      Ok(#(updated, updated_db))
     }
     Error(err) -> Error(err)
   }
@@ -163,7 +240,13 @@ pub type KvsMessage {
 }
 
 pub fn start_actor() -> Result(Subject(KvsMessage), actor.StartError) {
-  actor.new(new())
+  let db_path = uds.get_env("AUTH_DB_PATH", default_db_path)
+  start_actor_with_path(db_path)
+}
+
+pub fn start_actor_with_path(db_path: String) -> Result(Subject(KvsMessage), actor.StartError) {
+  let initial_db = load_from_disk(db_path)
+  actor.new(initial_db)
   |> actor.on_message(fn(db: Database, msg: KvsMessage) {
     case msg {
       GetByKey(key, reply_to) -> {

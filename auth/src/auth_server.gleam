@@ -22,25 +22,37 @@ pub fn main() -> Nil {
   let assert Ok(kvs_actor) = kvs.start_actor()
   let assert Ok(valve_actor) = payment.start_valve_actor(kvs_actor)
 
-  // 看板娘セシリアのマスターアカウントを初期投入（パスワード: cecilia123）
-  let cecilia_pw_hash = uds.hash_password("cecilia123")
-  let _ = kvs.call_create_user(
-    kvs_actor,
-    "usr_cecilia",
-    cecilia_pw_hash,
-    "qdf_live_cecilia_master",
-    1000.0,
-  )
+  // 看板娘セシリアのマスターアカウントを初期投入（未存在時のみ）
+  case kvs.call_get_by_id(kvs_actor, "usr_cecilia") {
+    Ok(_) -> Nil
+    Error(_) -> {
+      let cecilia_pw_hash = uds.hash_password("cecilia123")
+      let _ = kvs.call_create_user(
+        kvs_actor,
+        "usr_cecilia",
+        cecilia_pw_hash,
+        "qdf_live_cecilia_master",
+        1000.0,
+      )
+      Nil
+    }
+  }
 
-  // 旦那様（げんさん）のマスターアカウントを初期投入（パスワード: supersecret）
-  let gen_pw_hash = uds.hash_password("supersecret")
-  let _ = kvs.call_create_user(
-    kvs_actor,
-    "gen",
-    gen_pw_hash,
-    "qdf_live_gen_master",
-    100000.0,
-  )
+  // 旦那様（げんさん）のマスターアカウントを初期投入（未存在時のみ）
+  case kvs.call_get_by_id(kvs_actor, "gen") {
+    Ok(_) -> Nil
+    Error(_) -> {
+      let gen_pw_hash = uds.hash_password("supersecret")
+      let _ = kvs.call_create_user(
+        kvs_actor,
+        "gen",
+        gen_pw_hash,
+        "qdf_live_gen_master",
+        100000.0,
+      )
+      Nil
+    }
+  }
 
   let handler = fn(req: protocol.AuthRequest) -> protocol.AuthResponse {
     case req {
