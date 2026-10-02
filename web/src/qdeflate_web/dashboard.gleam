@@ -1357,8 +1357,8 @@ if (res.ok) {
     <!-- ========================================================================= -->
     <!-- 🚀 GitHub Actions: Zero Server Setup Automated Pipeline (Recommended) -->
     <!-- ========================================================================= -->
-    <div class=\"bg-gradient-to-br from-slate-900 via-slate-900 to-brand-950 text-white rounded-2xl p-6 sm:p-7 border border-brand-500/30 shadow-lg space-y-5\">
-      <div class=\"flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800\">
+    <div class=\"bg-[#0b132b] text-white rounded-2xl p-6 sm:p-7 border border-slate-800 shadow-md space-y-5\">
+      <div class=\"flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80\">
         <div class=\"flex items-center space-x-3\">
           <div class=\"w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center text-xl border border-brand-500/30\">
             🚀
@@ -1368,7 +1368,7 @@ if (res.ok) {
               <h2 class=\"text-base font-bold text-white\">GitHub Actions: Official Zero-Server CI/CD</h2>
               <span class=\"px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-wider border border-emerald-500/30\">Recommended</span>
             </div>
-            <p class=\"text-xs text-slate-400 mt-0.5 font-sans\">
+            <p class=\"text-xs text-slate-300 mt-0.5 font-sans\">
               No server installation, zero maintenance. Copy 3 lines of YAML and slash 20-30% AWS/CloudFront egress costs on every git push.
             </p>
           </div>
@@ -1440,39 +1440,39 @@ if (res.ok) {
           </span>
         </div>
         
-        <p class=\"text-[11px] text-slate-400 font-sans leading-relaxed\">
+        <p class=\"text-[11px] text-slate-300 font-sans leading-relaxed\">
           Enterprise CI/CD pipelines require zero trust. This Action is engineered to pass strict corporate SecOps reviews with verifiable, standard-based guarantees:
         </p>
 
         <div class=\"grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px] font-mono\">
-          <div class=\"p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 space-y-1\">
-            <div class=\"text-slate-400 text-[10px]\">SECRETS ISOLATION</div>
+          <div class=\"p-2.5 bg-slate-900 rounded-lg border border-slate-700/80 space-y-1\">
+            <div class=\"text-slate-400 text-[10px] font-bold\">SECRETS ISOLATION</div>
             <div class=\"text-emerald-400 font-bold flex items-center space-x-1\">
               <span>✓ Explicit Token Only</span>
             </div>
-            <div class=\"text-[10px] text-slate-500 font-sans\">The script only consumes <code>inputs.token</code>. It possesses no code to read, inspect, or exfiltrate other repository secrets or environment variables.</div>
+            <div class=\"text-[10px] text-slate-300 font-sans\">The script only consumes <code>inputs.token</code>. It possesses no code to read, inspect, or exfiltrate other repository secrets or environment variables.</div>
           </div>
-          <div class=\"p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 space-y-1\">
-            <div class=\"text-slate-400 text-[10px]\">SHELL INJECTION DEFENSE</div>
+          <div class=\"p-2.5 bg-slate-900 rounded-lg border border-slate-700/80 space-y-1\">
+            <div class=\"text-slate-400 text-[10px] font-bold\">SHELL INJECTION DEFENSE</div>
             <div class=\"text-emerald-400 font-bold flex items-center space-x-1\">
               <span>✓ -print0 Null-Delimited</span>
             </div>
-            <div class=\"text-[10px] text-slate-500 font-sans\">Uses POSIX-standard array expansion and <code>-print0 / IFS= read -r -d ''</code>. Whitespaces, semicolons, and quotes never trigger arbitrary execution.</div>
+            <div class=\"text-[10px] text-slate-300 font-sans\">Uses POSIX-standard array expansion and <code>-print0 / IFS= read -r -d ''</code>. Whitespaces, semicolons, and quotes never trigger arbitrary execution.</div>
           </div>
-          <div class=\"p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 space-y-1\">
-            <div class=\"text-slate-400 text-[10px]\">TOTAL TRANSPARENCY</div>
+          <div class=\"p-2.5 bg-slate-900 rounded-lg border border-slate-700/80 space-y-1\">
+            <div class=\"text-slate-400 text-[10px] font-bold\">TOTAL TRANSPARENCY</div>
             <div class=\"text-emerald-400 font-bold flex items-center space-x-1\">
               <span>✓ Zero Binary / Container</span>
             </div>
-            <div class=\"text-[10px] text-slate-500 font-sans\">No compiled binaries, no obfuscated Docker pulls, no heavy NPM dependencies. Just an 80-line Bash Composite Action you can audit in 60 seconds.</div>
+            <div class=\"text-[10px] text-slate-300 font-sans\">No compiled binaries, no obfuscated Docker pulls, no heavy NPM dependencies. Just an 80-line Bash Composite Action you can audit in 60 seconds.</div>
           </div>
         </div>
 
-        <div class=\"bg-slate-950/90 rounded-lg p-3 border border-slate-800 text-[10px] font-mono text-slate-400 space-y-1\">
-          <div class=\"text-slate-300 font-bold\">Audit & Verification Direct Link:</div>
-          <div class=\"text-slate-400 font-sans leading-relaxed\">
+        <div class=\"bg-slate-900 rounded-lg p-3 border border-slate-700/80 text-[10px] font-mono text-slate-300 space-y-1\">
+          <div class=\"text-slate-200 font-bold\">Audit & Verification Direct Link:</div>
+          <div class=\"text-slate-300 font-sans leading-relaxed\">
             Review the exact code running in your runner directly on GitHub: 
-            <a href=\"https://github.com/2423gen-stack/microforce-q-deflate/blob/main/action.yml\" target=\"_blank\" class=\"text-brand-400 hover:underline font-mono\">github.com/2423gen-stack/microforce-q-deflate/blob/main/action.yml</a>
+            <a href=\"https://github.com/2423gen-stack/microforce-q-deflate/blob/main/action.yml\" target=\"_blank\" class=\"text-brand-400 hover:underline font-mono font-bold\">github.com/2423gen-stack/microforce-q-deflate/blob/main/action.yml</a>
           </div>
         </div>
       </div>
