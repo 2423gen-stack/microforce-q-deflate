@@ -1428,53 +1428,51 @@ if (res.ok) {
         </p>
       </div>
 
-      <!-- 🛡️ 量子ソルバーセキュリティ監査実証レポート (Security & Privacy Audit) -->
+      <!-- 🛡️ サプライチェーン・セキュリティ検証レポート (Open-Source Supply Chain Security) -->
       <div class=\"pt-4 border-t border-slate-800 space-y-3\">
         <div class=\"flex flex-col sm:flex-row sm:items-center justify-between gap-2\">
           <div class=\"flex items-center space-x-2\">
             <span class=\"text-base\">🛡️</span>
-            <h3 class=\"text-xs font-bold text-slate-200 uppercase tracking-wider font-mono\">Security & Supply Chain Audit (Microforce Quantum Solver v2.1)</h3>
+            <h3 class=\"text-xs font-bold text-slate-200 uppercase tracking-wider font-mono\">Enterprise Supply Chain & Security Verification</h3>
           </div>
           <span class=\"px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/30\">
-            PASS · Geometric UNSAT (No Exploit State)
+            VERIFIED · 100% Auditable Plain Text
           </span>
         </div>
         
         <p class=\"text-[11px] text-slate-400 font-sans leading-relaxed\">
-          To eliminate enterprise SecOps compliance concerns, this Action underwent mathematical proof and constraint satisfaction audit via our multi-dimensional geometric solver.
+          Enterprise CI/CD pipelines require zero trust. This Action is engineered to pass strict corporate SecOps reviews with verifiable, standard-based guarantees:
         </p>
 
         <div class=\"grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px] font-mono\">
           <div class=\"p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 space-y-1\">
-            <div class=\"text-slate-400 text-[10px]\">SECRETS EXFILTRATION</div>
+            <div class=\"text-slate-400 text-[10px]\">SECRETS ISOLATION</div>
             <div class=\"text-emerald-400 font-bold flex items-center space-x-1\">
-              <span>✓ Physically Isolated</span>
+              <span>✓ Explicit Token Only</span>
             </div>
-            <div class=\"text-[10px] text-slate-500 font-sans\">Only receives designated payload. Never inspects env/other repo secrets.</div>
+            <div class=\"text-[10px] text-slate-500 font-sans\">The script only consumes <code>inputs.token</code>. It possesses no code to read, inspect, or exfiltrate other repository secrets or environment variables.</div>
           </div>
           <div class=\"p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 space-y-1\">
             <div class=\"text-slate-400 text-[10px]\">SHELL INJECTION DEFENSE</div>
             <div class=\"text-emerald-400 font-bold flex items-center space-x-1\">
-              <span>✓ -print0 Null Hardened</span>
+              <span>✓ -print0 Null-Delimited</span>
             </div>
-            <div class=\"text-[10px] text-slate-500 font-sans\">Resilient against special characters, quotes, and malicious filenames.</div>
+            <div class=\"text-[10px] text-slate-500 font-sans\">Uses POSIX-standard array expansion and <code>-print0 / IFS= read -r -d ''</code>. Whitespaces, semicolons, and quotes never trigger arbitrary execution.</div>
           </div>
           <div class=\"p-2.5 bg-slate-950/80 rounded-lg border border-slate-800 space-y-1\">
-            <div class=\"text-slate-400 text-[10px]\">CODE TRANSPARENCY</div>
+            <div class=\"text-slate-400 text-[10px]\">TOTAL TRANSPARENCY</div>
             <div class=\"text-emerald-400 font-bold flex items-center space-x-1\">
-              <span>✓ 100% Plain Composite</span>
+              <span>✓ Zero Binary / Container</span>
             </div>
-            <div class=\"text-[10px] text-slate-500 font-sans\">Zero compiled binary or blackbox container. Fully auditable 100-line script.</div>
+            <div class=\"text-[10px] text-slate-500 font-sans\">No compiled binaries, no obfuscated Docker pulls, no heavy NPM dependencies. Just an 80-line Bash Composite Action you can audit in 60 seconds.</div>
           </div>
         </div>
 
         <div class=\"bg-slate-950/90 rounded-lg p-3 border border-slate-800 text-[10px] font-mono text-slate-400 space-y-1\">
-          <div class=\"text-slate-300 font-bold\">Geometric Stress Benchmark Data:</div>
-          <div class=\"flex flex-wrap gap-x-4 gap-y-1 text-slate-400\">
-            <span>Solver Engine: <strong class=\"text-slate-200\">POCS Harmonic Projections</strong></span>
-            <span>Constraint Dimension: <strong class=\"text-slate-200\">D=2 (Hyperplane + Box)</strong></span>
-            <span>Iterations to Equilibrium: <strong class=\"text-slate-200\">25 cycles</strong></span>
-            <span>Residual Energy: <strong class=\"text-emerald-400\">5.27e-8 (Convergence Verified)</strong></span>
+          <div class=\"text-slate-300 font-bold\">Audit & Verification Direct Link:</div>
+          <div class=\"text-slate-400 font-sans leading-relaxed\">
+            Review the exact code running in your runner directly on GitHub: 
+            <a href=\"https://github.com/2423gen-stack/microforce-q-deflate/blob/main/action.yml\" target=\"_blank\" class=\"text-brand-400 hover:underline font-mono\">github.com/2423gen-stack/microforce-q-deflate/blob/main/action.yml</a>
           </div>
         </div>
       </div>
@@ -1715,7 +1713,7 @@ if (res.ok) {
       <div class=\"divide-y divide-slate-100 text-xs space-y-3 pt-1\">
         <div class=\"pt-3 space-y-1\">
           <p class=\"font-bold text-slate-900\">Q. Is running the Q-Deflate GitHub Action safe for proprietary enterprise code?</p>
-          <p class=\"text-slate-600 leading-relaxed\">A. Absolutely safe. The Action is an open, uncompiled 100-line Bash Composite Action (auditable in plain text). It is physically isolated to designated assets, never scans environment secrets, and uses <code>-print0</code> null-byte sanitization against command injection. Furthermore, the Action logic was mathematically proven via our <strong>Microforce Quantum Solver v2.1</strong> (Residual Conflict Stress: 5.27e-8, Geometric UNSAT / zero exploit state). All asset processing adheres strictly to our Zero-Storage in-memory policy.</p>
+          <p class=\"text-slate-600 leading-relaxed\">A. Absolutely safe. The Action is an open, uncompiled 80-line Bash Composite Action (fully auditable on GitHub in plain text). It strictly consumes only <code>inputs.token</code>, possesses no capability to read or exfiltrate other repository secrets or environment variables, and uses standard <code>-print0</code> null-byte sanitization against command injection. Furthermore, all asset processing adheres to our strictly in-memory Zero-Storage policy (buffers reclaimed immediately upon HTTP return, zero disk persistence, zero AI training).</p>
         </div>
         <div class=\"pt-3 space-y-1\">
           <p class=\"font-bold text-slate-900\">Q. What is the maximum file size for compression?</p>

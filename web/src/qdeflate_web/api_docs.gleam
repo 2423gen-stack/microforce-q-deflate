@@ -124,14 +124,15 @@ pub fn get_api_spec_json() -> String {
       ]),
     ),
     #(
-      "security_audit_report",
+      "security_verification",
       json.object([
-        #("audited_by", json.string("Microforce Quantum Solver v2.1 (Multi-Dimensional Geometric SAT Solver)")),
-        #("audit_target", json.string("Official GitHub Action (action.yml) & HTTP Compress Pipeline")),
-        #("status", json.string("PASS")),
-        #("mathematical_proof", json.string("Geometric UNSAT (Zero Exploit Equilibrium State)")),
-        #("residual_conflict_stress", json.string("5.268e-08")),
-        #("supply_chain_security", json.string("Physically isolated secrets, -print0 null-byte shell injection defense, 100% plain text composite auditability")),
+        #("audit_type", json.string("Open-Source Supply Chain & Code Isolation Audit")),
+        #("target", json.string("Official GitHub Action (action.yml) & REST API")),
+        #("status", json.string("VERIFIED")),
+        #("transparency", json.string("100% plain text Bash composite action without compiled binary or blackbox container")),
+        #("secrets_isolation", json.string("Scoped strictly to inputs.token. Zero access to environment variables or other repo secrets")),
+        #("shell_injection_defense", json.string("POSIX-compliant array expansion with -print0 null-byte delimiter")),
+        #("audit_url", json.string("https://github.com/2423gen-stack/microforce-q-deflate/blob/main/action.yml")),
       ]),
     ),
   ])
